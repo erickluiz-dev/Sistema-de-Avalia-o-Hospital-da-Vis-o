@@ -3,20 +3,25 @@ package main
 import (
 	f "fmt"
 	"net/http"
+	"time"
 )
 
-var nota1 = 0
-var nota2 = 0
-var nota3 = 0
-var nota4 = 0
-var nota5 = 0
+var id = 0
+
+type Avaliacoes struct {
+	Id        int
+	Avaliacao string
+	Data      time.Time
+}
+
+var array []Avaliacoes
 
 func main() {
-	http.HandleFunc("/nota1", incrementarNota1)
-	http.HandleFunc("/nota2", incrementarNota2)
-	http.HandleFunc("/nota3", incrementarNota3)
-	http.HandleFunc("/nota4", incrementarNota4)
-	http.HandleFunc("/nota5", incrementarNota5)
+	http.HandleFunc("/pessimo", incrementarPessimo)
+	http.HandleFunc("/ruim", incrementarRuim)
+	http.HandleFunc("/razoavel", incrementarRazoavel)
+	http.HandleFunc("/bom", incrementarBom)
+	http.HandleFunc("/excelente", incrementarExcelente)
 
 	f.Println("Servidor iniciado!")
 
@@ -24,27 +29,38 @@ func main() {
 
 }
 
-func incrementarNota1(w http.ResponseWriter, r *http.Request) {
-	nota1++
-	f.Println("Nota 1: ", nota1)
+func incrementarPessimo(w http.ResponseWriter, r *http.Request) {
+	id++
+	save := Avaliacoes{Id: id, Avaliacao: "Péssimo", Data: time.Now()}
+
+	array = append(array, save)
+	f.Println(array)
 }
 
-func incrementarNota2(w http.ResponseWriter, r *http.Request) {
-	nota2++
-	f.Println("Nota 2: ", nota2)
+func incrementarRuim(w http.ResponseWriter, r *http.Request) {
+	id++
+	save := Avaliacoes{Id: id, Avaliacao: "Ruim", Data: time.Now()}
+
+	array = append(array, save)
 }
 
-func incrementarNota3(w http.ResponseWriter, r *http.Request) {
-	nota3++
-	f.Println("Nota 3: ", nota3)
+func incrementarRazoavel(w http.ResponseWriter, r *http.Request) {
+	id++
+	save := Avaliacoes{Id: id, Avaliacao: "Razoável", Data: time.Now()}
+
+	array = append(array, save)
 }
 
-func incrementarNota4(w http.ResponseWriter, r *http.Request) {
-	nota4++
-	f.Println("Nota 4: ", nota4)
+func incrementarBom(w http.ResponseWriter, r *http.Request) {
+	id++
+	save := Avaliacoes{Id: id, Avaliacao: "Bom", Data: time.Now()}
+
+	array = append(array, save)
 }
 
-func incrementarNota5(w http.ResponseWriter, r *http.Request) {
-	nota5++
-	f.Println("Nota 5: ", nota5)
+func incrementarExcelente(w http.ResponseWriter, r *http.Request) {
+	id++
+	save := Avaliacoes{Id: id, Avaliacao: "Excelente", Data: time.Now()}
+
+	array = append(array, save)
 }

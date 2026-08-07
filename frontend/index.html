@@ -1,103 +1,16 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Avaliação</title>
-
-    <link rel="stylesheet" href="style.css">
-
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-
-<body>
-
-    <main class="container">
-
-        <h1>Como foi sua experiência?</h1>
-
-        <p class="subtitulo">
-            Escolha uma das opções abaixo para avaliar o atendimento.
-        </p>
-
-        <div class="avaliacoes">
-
-            <button class="card" onclick="nota1()">
-                <i data-lucide="angry"></i>
-                <span>Péssimo</span>
-            </button>
-
-            <button class="card" onclick="nota2()">
-                <i data-lucide="frown"></i>
-                <span>Ruim</span>
-            </button>
-
-            <button class="card" onclick="nota3()">
-                <i data-lucide="meh"></i>
-                <span>Razoável</span>
-            </button>
-
-            <button class="card" onclick="nota4()">
-                <i data-lucide="smile"></i>
-                <span>Bom</span>
-            </button>
-
-            <button class="card" onclick="nota5()">
-                <i data-lucide="laugh"></i>
-                <span>Excelente</span>
-            </button>
-
-        </div>
-
-    </main>
-
-    <script>
-
-        lucide.createIcons();
-
-        async function enviarNota(nota) {
-
-            try {
-
-                const response = await fetch(`http://localhost:8080/nota${nota}`, {
-                    method: "POST"
-                });
-
-                if (response.ok) {
-                    alert("Obrigado pela avaliação!");
-                }
-
-            } catch (erro) {
-
-                alert("Obrigado pela avaliação!");
-
-            }
-
-        }
-
-        function nota1() {
-            enviarNota(1);
-        }
-
-        function nota2() {
-            enviarNota(2);
-        }
-
-        function nota3() {
-            enviarNota(3);
-        }
-
-        function nota4() {
-            enviarNota(4);
-        }
-
-        function nota5() {
-            enviarNota(5);
-        }
-
-    </script>
-
-</body>
-
+<!doctype html>
+<html lang="<!-- figma:lang -->">
+  <head>
+    <!-- figma:head-start -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><!-- figma:title --></title>
+    <!-- figma:head-end -->
+  </head>
+  <body>
+    <!-- figma:body-start -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- figma:body-end -->
+  </body>
 </html>

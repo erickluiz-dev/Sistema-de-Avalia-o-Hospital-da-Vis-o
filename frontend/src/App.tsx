@@ -1,0 +1,853 @@
+import { useState } from 'react'
+import { Angry, Frown, Meh, Smile, Laugh } from 'lucide-react'
+import {
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, LineChart, Line, Legend
+} from 'recharts'
+
+type Screen = 'login' | 'home' | 'survey' | 'dashboard'
+
+type RatingKey = 'pessimo' | 'ruim' | 'razoavel' | 'bom' | 'excelente'
+
+const RATINGS: { key: RatingKey; label: string; color: string; bg: string; border: string; shadow: string; Icon: React.ElementType }[] = [
+  { key: 'pessimo',   label: 'Péssimo', color: '#C0392B', bg: '#FEF2F2', border: '#FECACA', shadow: 'rgba(192,57,43,0.25)',   Icon: Angry  },
+  { key: 'ruim',      label: 'Ruim',        color: '#E05A2B', bg: '#FFF7ED', border: '#FED7AA', shadow: 'rgba(224,90,43,0.25)',   Icon: Frown  },
+  { key: 'razoavel',  label: 'Razoável',              color: '#E8862A', bg: '#FEFCE8', border: '#FDE68A', shadow: 'rgba(232,134,42,0.25)',  Icon: Meh    },
+  { key: 'bom',       label: 'Bom',          color: '#7DC36B', bg: '#F0FDF4', border: '#BBF7D0', shadow: 'rgba(125,195,107,0.25)', Icon: Smile  },
+  { key: 'excelente', label: 'Excelente',   color: '#2EAA4A', bg: '#F0FDF4', border: '#86EFAC', shadow: 'rgba(46,170,74,0.25)',   Icon: Laugh  },
+]
+
+function FaceSVG({ type, size = 120 }: { type: RatingKey; size?: number }) {
+  const s = size
+  const configs: Record<RatingKey, { fill: string; brows: string; mouth: string; eyes: string }> = {
+    pessimo: {
+      fill: '#C0392B',
+      brows: 'M36 42 Q44 36 52 42 M68 42 Q76 36 84 42',
+      mouth: 'M38 72 Q60 58 82 72',
+      eyes: 'M44 55 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0 M72 55 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0',
+    },
+    ruim: {
+      fill: '#E05A2B',
+      brows: 'M38 43 Q46 38 54 43 M66 43 Q74 38 82 43',
+      mouth: 'M40 72 Q60 62 80 72',
+      eyes: 'M46 56 m-4.5 0 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0-9 0 M74 56 m-4.5 0 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0-9 0',
+    },
+    razoavel: {
+      fill: '#E8862A',
+      brows: '',
+      mouth: 'M38 70 L82 70',
+      eyes: 'M44 56 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0 M76 56 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0',
+    },
+    bom: {
+      fill: '#7DC36B',
+      brows: '',
+      mouth: 'M38 66 Q60 78 82 66',
+      eyes: 'M44 54 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0 M76 54 m-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0-10 0',
+    },
+    excelente: {
+      fill: '#2EAA4A',
+      brows: '',
+      mouth: 'M34 63 Q60 84 86 63',
+      eyes: 'M40 52 Q49 44 58 52 M62 52 Q71 44 80 52',
+    },
+  }
+  const c = configs[type]
+  const scale = s / 120
+  return (
+    <svg width={s} height={s} viewBox="0 0 120 120" fill="none">
+      <circle cx="60" cy="60" r="58" fill={c.fill} />
+      <circle cx="60" cy="60" r="58" fill="url(#shine)" opacity="0.12" />
+      <defs>
+        <radialGradient id="shine" cx="35%" cy="30%" r="50%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Eyes */}
+      {type === 'excelente' ? (
+        <>
+          <path d={c.eyes} stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
+        </>
+      ) : (
+        <path d={c.eyes} fill="white" />
+      )}
+      {/* Brows */}
+      {c.brows && (
+        <path d={c.brows} stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+      )}
+      {/* Mouth */}
+      {type === 'excelente' ? (
+        <path d={c.mouth} stroke="white" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      ) : type === 'razoavel' ? (
+        <line x1="38" y1="70" x2="82" y2="70" stroke="white" strokeWidth="4" strokeLinecap="round" />
+      ) : (
+        <path d={c.mouth} stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
+      )}
+    </svg>
+  )
+}
+
+const barData = [
+  { day: 'Mon', evaluations: 42 }, { day: 'Tue', evaluations: 67 },
+  { day: 'Wed', evaluations: 53 }, { day: 'Thu', evaluations: 89 },
+  { day: 'Fri', evaluations: 74 }, { day: 'Sat', evaluations: 31 },
+  { day: 'Sun', evaluations: 28 },
+]
+
+const pieData = [
+  { name: 'Excellent', value: 38, color: '#2563EB' },
+  { name: 'Good',      value: 27, color: '#22C55E' },
+  { name: 'Average',   value: 18, color: '#EAB308' },
+  { name: 'Bad',       value: 11, color: '#F97316' },
+  { name: 'Very Bad',  value: 6,  color: '#EF4444' },
+]
+
+const lineData = [
+  { week: 'W1', score: 3.8 }, { week: 'W2', score: 4.0 },
+  { week: 'W3', score: 3.6 }, { week: 'W4', score: 4.2 },
+  { week: 'W5', score: 4.5 }, { week: 'W6', score: 4.3 },
+  { week: 'W7', score: 4.7 }, { week: 'W8', score: 4.6 },
+]
+
+const recentEvals = [
+  { date: 'Aug 7, 2026 14:32', rating: 'Excelente', terminal: 'Terminal A', status: 'Recorded' },
+  { date: 'Aug 7, 2026 14:18', rating: 'Bom',       terminal: 'Terminal B', status: 'Recorded' },
+  { date: 'Aug 7, 2026 13:55', rating: 'Razoável',  terminal: 'Terminal A', status: 'Recorded' },
+  { date: 'Aug 7, 2026 13:41', rating: 'Péssimo',   terminal: 'Terminal C', status: 'Flagged'  },
+  { date: 'Aug 7, 2026 13:28', rating: 'Excelente', terminal: 'Terminal B', status: 'Recorded' },
+  { date: 'Aug 7, 2026 13:10', rating: 'Bom',       terminal: 'Terminal A', status: 'Recorded' },
+  { date: 'Aug 7, 2026 12:47', rating: 'Ruim',      terminal: 'Terminal C', status: 'Flagged'  },
+]
+
+function ratingColor(r: string) {
+  if (r === 'Excelente') return '#2563EB'
+  if (r === 'Bom')       return '#22C55E'
+  if (r === 'Razoável')  return '#EAB308'
+  if (r === 'Ruim')      return '#F97316'
+  return '#EF4444'
+}
+
+// ─── Shared Components ────────────────────────────────────────────────────────
+
+function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
+  const s = { sm: 28, md: 36, lg: 44 }[size]
+  const txt = { sm: 'text-base', md: 'text-lg', lg: 'text-2xl' }[size]
+  return (
+    <div className="flex items-center gap-2.5">
+      <img src="/logo.png" alt="LogoHV" />
+    </div>
+  )
+}
+
+function NavBar({ onLogout, subtitle }: { onLogout: () => void; subtitle: string }) {
+  return (
+    <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+      <div className="flex items-center gap-4">
+        <Logo size="sm" />
+        <span className="text-gray-400 text-sm">|</span>
+        <span className="text-gray-600 text-sm font-medium">{subtitle}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <span className="text-[#00B5CC] text-xs font-semibold">AM</span>
+          </div>
+          <span className="text-gray-700 text-sm font-medium hidden sm:block">Admin Manager</span>
+        </div>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" fill="currentColor"/>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </header>
+  )
+}
+
+function StatCard({ label, value, sub, color = "#00B5CC", icon }: { label: string; value: string | number; sub?: string; color?: string; icon: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl p-5 flex flex-col gap-3" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-gray-500 font-medium">{label}</span>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: color + '18' }}>
+          <div style={{ color }}>{icon}</div>
+        </div>
+      </div>
+      <div>
+        <div className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>{value}</div>
+        {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+// ─── Screen 1: Login ──────────────────────────────────────────────────────────
+
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState('admin@hospitaldavisao.com.br')
+  const [password, setPassword] = useState('••••••••••••')
+  const [remember, setRemember] = useState(false)
+
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left decorative panel */}
+      <div
+        className="hidden lg:flex flex-col justify-between p-12 lg:w-1/2 relative overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #00cca0 0%, #00B5CC 45%, #009ccc 100%)' }}
+      >
+        {/* Geometric decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10" style={{ background: 'white' }} />
+          <div className="absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-10" style={{ background: 'white' }} />
+          <div className="absolute -bottom-16 right-1/4 w-80 h-80 rounded-full opacity-10" style={{ background: 'white' }} />
+          {/* Grid dots */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)',
+            backgroundSize: '28px 28px'
+          }} />
+        </div>
+
+        <div className="relative z-10">
+          <Logo size="lg" />
+          <div className="mt-2" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 500 }}>
+            SISTEMA DE AVALIAÇÃO DA SAFISFAÇÃO DO PACIENTE
+          </div>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center justify-center flex-1 py-16">
+          {/* Illustration */}
+          <div className="w-64 h-64 relative">
+            <div className="absolute inset-0 rounded-3xl opacity-20" style={{ background: 'white' }} />
+            <div className="absolute inset-4 rounded-2xl opacity-10" style={{ background: 'white' }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg width="160" height="160" viewBox="0 0 160 160" fill="none">
+                {/* abstract customer service illustration */}
+                <rect x="20" y="90" width="120" height="50" rx="10" fill="rgba(255,255,255,0.2)" />
+                <rect x="35" y="100" width="90" height="6" rx="3" fill="rgba(255,255,255,0.5)" />
+                <rect x="35" y="113" width="60" height="6" rx="3" fill="rgba(255,255,255,0.35)" />
+                <rect x="35" y="126" width="75" height="6" rx="3" fill="rgba(255,255,255,0.25)" />
+                <circle cx="80" cy="48" r="28" fill="rgba(255,255,255,0.25)" />
+                <circle cx="80" cy="44" r="14" fill="rgba(255,255,255,0.4)" />
+                <path d="M68 66 Q80 78 92 66" stroke="rgba(255,255,255,0.6)" strokeWidth="3" strokeLinecap="round" fill="none" />
+
+              </svg>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <h2 className="text-white text-2xl font-bold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Measure What Matters
+            </h2>
+            <p className="text-blue-100 text-sm mt-2 max-w-xs leading-relaxed opacity-90">
+              Feedback de clientes em tempo real para elevar cada interação de serviço.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex gap-2">
+          {[0,1,2].map(i => (
+            <div key={i} className="h-1 rounded-full" style={{ width: i === 0 ? 24 : 8, background: i === 0 ? 'white' : 'rgba(255,255,255,0.35)' }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Right login card */}
+      <div className="flex-1 flex items-center justify-center bg-gray-50 p-6 min-h-screen lg:min-h-0">
+        <div className="w-full max-w-sm">
+          <div className="bg-white rounded-3xl p-8 sm:p-10" style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
+            {/* Logo placeholder */}
+            <div className="flex justify-center mb-6">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "#d3d8d8a9" }}>
+                  <img src="icon.ico" alt="logo-HV" />
+              </div>
+            </div>
+
+            <h1 className="text-center text-gray-900 text-xl font-bold mb-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Safisfação do Paciente
+            </h1>
+            <p className="text-center text-gray-400 text-sm mb-8">Acesse sua conta</p>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                  style={{ '--tw-ring-color': '#2563EB' } as React.CSSProperties}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">SENHA</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                  style={{ '--tw-ring-color': '#2563EB' } as React.CSSProperties}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={e => setRemember(e.target.checked)}
+                    className="w-4 h-4 rounded accent-blue-600"
+                  />
+                  <span className="text-sm text-gray-600">Lembre-se</span>
+                </label>
+                <button className="text-sm text-[#00B5CC] hover:text-blue-700 font-medium transition-colors cursor-pointer">
+                  Esqueci a senha?
+                </button>
+              </div>
+
+              <button
+                onClick={onLogin}
+                className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer mt-1"
+                style={{ background: "#00B5CC", boxShadow: '0 4px 16px #00b4cc59' }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+              >
+                Entrar
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-6">
+              Hospital da Visão © 2026
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Screen 2: Home Dashboard ─────────────────────────────────────────────────
+
+function HomeScreen({ onNav, onLogout }: { onNav: (s: Screen) => void; onLogout: () => void }) {
+  const cards = [
+    {
+      icon: (
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" opacity=".6"/>
+          <rect x="10" y="7"  width="4" height="14" rx="1" fill="currentColor" opacity=".8"/>
+          <rect x="17" y="3"  width="4" height="18" rx="1" fill="currentColor"/>
+        </svg>
+      ),
+      title: 'Administrative Dashboard',
+      desc: 'View statistics, reports and satisfaction indicators.',
+      btn: 'Access Dashboard',
+      color: "#00B5CC",
+      screen: 'dashboard' as Screen,
+      gradient: "#00B5CC",
+      shadow: '#00b4cc59',
+      accent: '#EFF6FF',
+    },
+    {
+      icon: (
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity=".4"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+          <circle cx="9"  cy="10" r="1.2" fill="currentColor"/>
+          <circle cx="15" cy="10" r="1.2" fill="currentColor"/>
+        </svg>
+      ),
+      title: 'Customer Evaluation',
+      desc: 'Open the customer satisfaction survey.',
+      btn: 'Start Evaluation',
+      color: "#00B5CC",
+      screen: 'survey' as Screen,
+      gradient: "#00B5CC",
+      shadow: '#00b4cc59',
+      accent: '#F0FDF4',
+    },
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <NavBar onLogout={onLogout} subtitle="Dashboard Home" />
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            Welcome back, Admin
+          </h1>
+          <p className="text-gray-500 mt-2 text-sm">What would you like to do today?</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl">
+          {cards.map(c => (
+            <div
+              key={c.title}
+              className="flex-1 bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
+              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.07)', border: '1px solid #f3f4f6' }}
+              onClick={() => onNav(c.screen)}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.boxShadow = `0 16px 40px ${c.shadow}`
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.07)'
+              }}
+            >
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: c.accent, color: c.color }}>
+                {c.icon}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>{c.title}</h2>
+                <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">{c.desc}</p>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); onNav(c.screen) }}
+                className="mt-auto w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer"
+                style={{ background: c.gradient, boxShadow: `0 4px 16px ${c.shadow}` }}
+              >
+                {c.btn}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          System operational · Aug 7, 2026
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// ─── Screen 3: Survey ─────────────────────────────────────────────────────────
+
+function SurveyScreen({ onBack }: { onBack: () => void }) {
+  const [selected, setSelected] = useState<RatingKey | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [countdown, setCountdown] = useState(2)
+
+  const enviarAvaliacao = async (nota: RatingKey) => {
+    try {
+      const response = await fetch(`http://localhost:8080/${nota}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao enviar avaliação");
+      }
+
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
+
+  const handleSubmit = async () => {
+
+      if (!selected) return;
+
+      const sucesso = await enviarAvaliacao(selected);
+
+      if (!sucesso) {
+          alert("Não foi possível registrar a avaliação.");
+          return;
+      }
+
+      setSubmitted(true);
+      setCountdown(2);
+
+      const interval = setInterval(() => {
+
+          setCountdown(prev => {
+
+              if (prev <= 1) {
+
+                  clearInterval(interval);
+
+                  setSelected(null);
+                  setSubmitted(false);
+
+                  return 2;
+              }
+
+              return prev - 1;
+
+          });
+
+      }, 1000);
+
+  }
+
+  if (submitted) {
+    const sel = RATINGS.find(r => r.key === selected)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center gap-6" style={{ background: '#f8fafc' }}>
+        <div className="flex flex-col items-center gap-5">
+          <div
+            className="w-28 h-28 rounded-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg,#22C55E,#16A34A)', boxShadow: '0 8px 32px rgba(34,197,94,0.35)' }}
+          >
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="white">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-4xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Obrigado!
+            </h2>
+            <p className="text-gray-500 mt-2 text-lg">
+              Sua avaliação foi registrada com sucesso.
+            </p>
+            {sel && (
+              <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold" style={{ background: sel.color }}>
+                <FaceSVG type={sel.key} size={24} />
+                {sel.label.replace('\n', ' ')}
+              </div>
+            )}
+          </div>
+          <p className="text-gray-400 text-sm">
+            Redirecionando em <span className="font-bold text-gray-600">{countdown}s</span>…
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#f8fafc' }}>
+      {/* Minimal top bar */}
+      <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+        <Logo size="sm" />
+        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer transition-colors flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Voltar
+        </button>
+      </div>
+
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-10">
+        {/* Title */}
+        <div className="text-center">
+          <h1
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 max-w-xl mx-auto leading-tight"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Como você está satisfeito com nossos serviços?
+          </h1>
+        </div>
+
+        {/* Rating cards */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-4xl">
+          {RATINGS.map(r => {
+            const isSelected = selected === r.key
+            return (
+              <div
+                key={r.key}
+                onClick={() => setSelected(r.key)}
+                className="flex-1 flex flex-col items-center justify-center gap-4 py-8 px-4 rounded-2xl cursor-pointer transition-all duration-200"
+                style={{
+                  background: isSelected ? r.bg : 'white',
+                  border: `2px solid ${isSelected ? r.color : '#f3f4f6'}`,
+                  boxShadow: isSelected
+                    ? `0 8px 32px ${r.shadow}`
+                    : '0 2px 12px rgba(0,0,0,0.05)',
+                  transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                }}
+                onMouseEnter={e => {
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = r.color + '60'
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${r.shadow}`
+                    e.currentTarget.style.transform = 'scale(1.02)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = '#f3f4f6'
+                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)'
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }
+                }}
+              >
+                <r.Icon size={64} color={r.color} strokeWidth={1.5} />
+                <div className="text-center">
+                  {r.label.split('\n').map((line, i) => (
+                    <div
+                      key={i}
+                      className="text-sm sm:text-base font-bold leading-snug"
+                      style={{ fontFamily: "'DM Sans', sans-serif", color: isSelected ? r.color : '#374151' }}
+                    >
+                      {line}
+                    </div>
+                  ))}
+                </div>
+                {isSelected && (
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.color }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Submit button */}
+        <div className="h-14 flex items-center">
+          {selected && (
+            <button
+              onClick={handleSubmit}
+              className="px-12 py-4 rounded-2xl text-white font-semibold text-base transition-all duration-200 cursor-pointer"
+              style={{ background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', boxShadow: '0 6px 20px rgba(37,99,235,0.35)' }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+            >
+              Enviar Avaliação
+            </button>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// ─── Screen 4: Admin Dashboard ────────────────────────────────────────────────
+
+function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: () => void }) {
+  const [search, setSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState('today')
+
+  const statCards = [
+    { label: 'Total Evaluations', value: '1,284', sub: '+12% this week', color: '#2563EB',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+    },
+    { label: 'Excellent', value: '487', sub: '38% of total', color: '#2563EB',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    },
+    { label: 'Good', value: '347', sub: '27% of total', color: '#22C55E',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+    },
+    { label: 'Average', value: '231', sub: '18% of total', color: '#EAB308',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+    },
+    { label: 'Bad + Very Bad', value: '219', sub: '17% of total', color: '#EF4444',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+    },
+  ]
+
+  const kpiCards = [
+    { label: 'Overall Satisfaction', value: '4.2 / 5.0', trend: '↑ 0.3 vs last week', pos: true },
+    { label: 'Average Score',        value: '84%',        trend: '↑ 5% vs last week',  pos: true },
+    { label: "Today's Evaluations",  value: '68',         trend: '↑ 12 vs yesterday',  pos: true },
+    { label: 'Weekly Growth',        value: '+12.4%',     trend: '2nd best this month', pos: true },
+  ]
+
+  const filtered = recentEvals.filter(e =>
+    e.rating.toLowerCase().includes(search.toLowerCase()) ||
+    e.terminal.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <NavBar onLogout={onLogout} subtitle="Administrative Dashboard" />
+
+      <main className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
+        {/* Page title + actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+              Back to menu
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>Analytics Overview</h1>
+            <p className="text-gray-500 text-sm">August 7, 2026 · All terminals</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              <option value="today">Today</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+            </select>
+            <button
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => {}}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              Refresh
+            </button>
+            <button
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all"
+              style={{ background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>
+              Export Report
+            </button>
+          </div>
+        </div>
+
+        {/* KPI row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpiCards.map(k => (
+            <div key={k.label} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
+              <div className="text-xs font-medium text-gray-500">{k.label}</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{k.value}</div>
+              <div className={`text-xs mt-1 ${k.pos ? 'text-green-500' : 'text-red-400'}`}>{k.trend}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {statCards.map(s => (
+            <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} color={s.color} icon={s.icon} />
+          ))}
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Bar chart */}
+          <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Evaluations by Day</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Last 7 days</p>
+              </div>
+              <div className="w-2 h-2 rounded-full bg-blue-600" />
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={barData} barCategoryGap="35%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+                <Bar dataKey="evaluations" fill="#2563EB" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Pie chart */}
+          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+            <div className="mb-4">
+              <h3 className="font-semibold text-gray-900 text-sm">Satisfaction Distribution</h3>
+              <p className="text-xs text-gray-400 mt-0.5">All time</p>
+            </div>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
+                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-col gap-1.5 mt-2">
+              {pieData.map(d => (
+                <div key={d.name} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                    <span className="text-gray-600">{d.name}</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">{d.value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Line chart */}
+        <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm">Satisfaction Score History</h3>
+              <p className="text-xs text-gray-400 mt-0.5">8-week trend</p>
+            </div>
+            <div className="px-2.5 py-1 rounded-lg text-xs font-semibold text-green-600 bg-green-50">↑ Trending up</div>
+          </div>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={lineData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+              <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+              <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+              <Line type="monotone" dataKey="score" stroke="#2563EB" strokeWidth={2.5} dot={{ fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Recent evaluations table */}
+        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm">Recent Evaluations</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Latest submissions</p>
+            </div>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search ratings or terminals…"
+                className="pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 w-52"
+              />
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                  <th className="px-5 py-3 text-left">Date</th>
+                  <th className="px-5 py-3 text-left">Rating</th>
+                  <th className="px-5 py-3 text-left">Terminal</th>
+                  <th className="px-5 py-3 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row, i) => (
+                  <tr key={i} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">{row.date}</td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      <span className="font-semibold" style={{ color: ratingColor(row.rating) }}>{row.rating}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{row.terminal}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${row.status === 'Recorded' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 text-sm">No results found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// ─── Root ──────────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>('login')
+
+  return (
+    <>
+      {screen === 'login'     && <LoginScreen onLogin={() => setScreen('home')} />}
+      {screen === 'home'      && <HomeScreen onNav={setScreen} onLogout={() => setScreen('login')} />}
+      {screen === 'survey'    && <SurveyScreen onBack={() => setScreen('home')} />}
+      {screen === 'dashboard' && <DashboardScreen onBack={() => setScreen('home')} onLogout={() => setScreen('login')} />}
+    </>
+  )
+}

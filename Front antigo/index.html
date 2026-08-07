@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+    <main class="container">
+
+        <h1>Como foi sua experiência?</h1>
+
+        <p class="subtitulo">
+            Escolha uma das opções abaixo para avaliar o atendimento.
+        </p>
+
+        <div class="avaliacoes">
+
+            <button class="card" onclick="pessimo()">
+                <i data-lucide="angry"></i>
+                <span>Péssimo</span>
+            </button>
+
+            <button class="card" onclick="ruim()">
+                <i data-lucide="frown"></i>
+                <span>Ruim</span>
+            </button>
+
+            <button class="card" onclick="razoavel()">
+                <i data-lucide="meh"></i>
+                <span>Razoável</span>
+            </button>
+
+            <button class="card" onclick="bom()">
+                <i data-lucide="smile"></i>
+                <span>Bom</span>
+            </button>
+
+            <button class="card" onclick="exelente()">
+                <i data-lucide="laugh"></i>
+                <span>Excelente</span>
+            </button>
+
+        </div>
+
+    </main>
+
+    <script>
+
+        lucide.createIcons();
+
+        async function enviarNota(nota) {
+
+            try {
+
+                const response = await fetch(`http://localhost:8080/${nota}`, {
+                    method: "POST"
+                });
+
+                if (response.ok) {
+                    alert("Obrigado pela avaliação!");
+                }
+
+            } catch (erro) {
+
+                alert("Obrigado pela avaliação!");
+
+            }
+
+        }
+
+        function pessimo() {
+            enviarNota("pessimo");
+        }
+
+        function ruim() {
+            enviarNota("ruim");
+        }
+
+        function razoavel() {
+            enviarNota("razoavel");
+        }
+
+        function bom() {
+            enviarNota("bom");
+        }
+
+        function exelente() {
+            enviarNota("exelente");
+        }
+
+    </script>
+
+</body>
+
+</html>
