@@ -1,22 +1,51 @@
 package main
 
 import (
+	"context"
 	f "fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var id = 0
-
 type Avaliacoes struct {
-	Id        int
+	Id        int64
 	Avaliacao string
 	Data      time.Time
 }
 
-var array []Avaliacoes
+var db *pgxpool.Pool
 
 func main() {
+
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL não configurada")
+	}
+
+	var err error
+
+	db, err = pgxpool.New(
+		context.Background(),
+		databaseURL,
+	)
+
+	if err != nil {
+		log.Fatal("Erro ao criar conexão:", err)
+	}
+
+	defer db.Close()
+
+	if err := db.Ping(context.Background()); err != nil {
+		log.Fatal("Erro ao conectar ao PostgreSQL:", err)
+	}
+
+	f.Println("Banco de dados conectado!")
+
 	http.HandleFunc("/pessimo", incrementarPessimo)
 	http.HandleFunc("/ruim", incrementarRuim)
 	http.HandleFunc("/razoavel", incrementarRazoavel)
@@ -25,42 +54,140 @@ func main() {
 
 	f.Println("Servidor iniciado!")
 
-	http.ListenAndServe(":8080", nil)
+	handler := corsMiddleware(http.DefaultServeMux)
 
+	log.Fatal(http.ListenAndServe(":8080", handler))
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8443")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func salvarAvaliacao(avaliacao string) error {
+
+	_, err := db.Exec(
+		context.Background(),
+		`
+		INSERT INTO avaliacoes (avaliacao)
+		VALUES ($1)
+		`,
+		avaliacao,
+	)
+
+	return err
 }
 
 func incrementarPessimo(w http.ResponseWriter, r *http.Request) {
-	id++
-	save := Avaliacoes{Id: id, Avaliacao: "Péssimo", Data: time.Now()}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+        return
+    }
 
-	array = append(array, save)
-	f.Println(array)
+    err := salvarAvaliacao("pessimo")
+
+    if err != nil {
+        log.Println("Erro ao salvar avaliação:", err)
+        http.Error(w, "Erro ao salvar avaliação", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    f.Fprintln(w, "Avaliação registrada!")
 }
 
 func incrementarRuim(w http.ResponseWriter, r *http.Request) {
-	id++
-	save := Avaliacoes{Id: id, Avaliacao: "Ruim", Data: time.Now()}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+        return
+    }
 
-	array = append(array, save)
+    err := salvarAvaliacao("ruim")
+
+    if err != nil {
+        log.Println("Erro ao salvar avaliação:", err)
+        http.Error(w, "Erro ao salvar avaliação", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    f.Fprintln(w, "Avaliação registrada!")
 }
 
 func incrementarRazoavel(w http.ResponseWriter, r *http.Request) {
-	id++
-	save := Avaliacoes{Id: id, Avaliacao: "Razoável", Data: time.Now()}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+        return
+    }
 
-	array = append(array, save)
+    err := salvarAvaliacao("razoavel")
+
+    if err != nil {
+        log.Println("Erro ao salvar avaliação:", err)
+        http.Error(w, "Erro ao salvar avaliação", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    f.Fprintln(w, "Avaliação registrada!")
 }
 
 func incrementarBom(w http.ResponseWriter, r *http.Request) {
-	id++
-	save := Avaliacoes{Id: id, Avaliacao: "Bom", Data: time.Now()}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+        return
+    }
 
-	array = append(array, save)
+    err := salvarAvaliacao("bom")
+
+    if err != nil {
+        log.Println("Erro ao salvar avaliação:", err)
+        http.Error(w, "Erro ao salvar avaliação", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    f.Fprintln(w, "Avaliação registrada!")
 }
 
 func incrementarExcelente(w http.ResponseWriter, r *http.Request) {
-	id++
-	save := Avaliacoes{Id: id, Avaliacao: "Excelente", Data: time.Now()}
 
-	array = append(array, save)
+	if r.Method != http.MethodPost {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	err := salvarAvaliacao("excelente")
+
+	if err != nil {
+		log.Println("Erro ao salvar avaliação:", err)
+
+		http.Error(
+			w,
+			"Erro ao salvar avaliação",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+
+	f.Fprintln(w, "Avaliação registrada!")
 }
