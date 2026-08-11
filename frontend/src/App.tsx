@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Angry, Frown, Meh, Smile, Laugh } from 'lucide-react'
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend
 } from 'recharts'
+import { toPng } from 'html-to-image'
 
 type Screen = 'login' | 'home' | 'survey' | 'dashboard'
 
 type RatingKey = 'pessimo' | 'ruim' | 'razoavel' | 'bom' | 'excelente'
+
+type Avaliacao = {
+  Id: number
+  Avaliacao: string
+  Data: string
+}
 
 const RATINGS: { key: RatingKey; label: string; color: string; bg: string; border: string; shadow: string; Icon: React.ElementType }[] = [
   { key: 'pessimo',   label: 'Péssimo',   color: '#C0392B', bg: '#FEF2F2', border: '#FECACA', shadow: 'rgba(192,57,43,0.25)',   Icon: Angry  },
@@ -87,13 +94,6 @@ function FaceSVG({ type, size = 120 }: { type: RatingKey; size?: number }) {
   )
 }
 
-const barData = [
-  { day: 'Segunda', avaliações: 42 }, { day: 'Terça', avaliações: 67 },
-  { day: 'Quarta', avaliações: 53 }, { day: 'Quinta', avaliações: 89 },
-  { day: 'Sexta', avaliações: 74 }, { day: 'Sábado', avaliações: 31 },
-  { day: 'Domingo', avaliações: 28 },
-]
-
 const pieData = [
   { name: 'Excelente', value: 38, color: '#00B5CC' },
   { name: 'Bom',      value: 27, color: '#0eb374' },
@@ -102,22 +102,13 @@ const pieData = [
   { name: 'Péssimo',  value: 6,  color: '#EF4444' },
 ]
 
-const lineData = [
-  { week: 'Semana 1', pontação: 3.8 }, { week: 'Semana 2', pontação: 4.0 },
-  { week: 'Semana 3', pontação: 3.6 }, { week: 'Semana 4', pontação: 4.2 },
-  { week: 'Semana 5', pontação: 4.5 }, { week: 'Semana 6', pontação: 4.3 },
-  { week: 'Semana 7', pontação: 4.7 }, { week: 'Semana 8', pontação: 4.6 },
-]
-
-const recentEvals = [
-  { date: '7 Agosto, 2026 14:32', rating: 'Excelente', terminal: '1ª Recepção' },
-  { date: '7 Agosto, 2026 14:18', rating: 'Bom',       terminal: '2ª Recepção' },
-  { date: '7 Agosto, 2026 13:55', rating: 'Razoável',  terminal: '1ª Recepção'},
-  { date: '7 Agosto, 2026 13:41', rating: 'Péssimo',   terminal: '3ª Recepção' },
-  { date: '7 Agosto, 2026 13:28', rating: 'Excelente', terminal: 'Recpção de Exames' },
-  { date: '7 Agosto, 2026 13:10', rating: 'Bom',       terminal: 'Autorização de Exames' },
-  { date: '7 Agosto, 2026 12:47', rating: 'Ruim',      terminal: 'Centro Diagnóstico' },
-]
+const obterDataDeHoje = () => {
+  const hoje = new Date()
+  const ano = hoje.getFullYear()
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0')
+  const dia = String(hoje.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
+}
 
 function ratingColor(r: string) {
   if (r === 'Excelente') return '#00B5CC'
@@ -125,6 +116,22 @@ function ratingColor(r: string) {
   if (r === 'Razoável')  return '#EAB308'
   if (r === 'Ruim')      return '#F97316'
   return '#EF4444'
+}
+
+function ratingLabel(r: string) {
+  const rating = r
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  if (rating === "excelente") return "Excelente"
+  if (rating === "bom") return "Bom"
+  if (rating === "razoavel") return "Razoável"
+  if (rating === "ruim") return "Ruim"
+  if (rating === "pessimo") return "Péssimo"
+
+  return r
 }
 
 // ─── Shared Components ────────────────────────────────────────────────────────
@@ -195,12 +202,16 @@ function StatCard({ label, value, sub, color = "#00B5CC", icon }: { label: strin
   )
 }
 
+
 // ─── Screen 1: Login ──────────────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('admin@hospitaldavisao.com.br')
   const [password, setPassword] = useState('••••••••••••')
   const [remember, setRemember] = useState(false)
+
+  //Data automaticamente para o dia atual
+  
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -556,7 +567,7 @@ function SurveyScreen({ onBack }: { onBack: () => void }) {
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 max-w-xl mx-auto leading-tight"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Como você está satisfeito com nossos serviços?
+            Como você avalia o nosso Atendimento?
           </h1>
         </div>
 
@@ -638,30 +649,470 @@ function SurveyScreen({ onBack }: { onBack: () => void }) {
 function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: () => void }) {
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('today')
+  const [data, setData] = useState(obterDataDeHoje())
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const relatorioRef = useRef<HTMLDivElement>(null)
+
+  const recentEvals = avaliacoes
+    .slice(0, 10)
+    .map((avaliacao) => ({
+      date: new Date(avaliacao.Data).toLocaleString("pt-BR"),
+      rating: ratingLabel(avaliacao.Avaliacao),
+      terminal: "Hospital da Visão",
+    }))
+
+  const carregarAvaliacoes = async () => {
+    try {
+      setCarregando(true)
+
+      const response = await fetch(
+        "http://localhost:8080/avaliacoes"
+      )
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar avaliações")
+      }
+
+      const dados: Avaliacao[] = await response.json()
+
+      setAvaliacoes(dados)
+
+    } catch (error) {
+      console.error("Erro ao carregar avaliações:", error)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  const exportarRelatorio = () => {
+    if (avaliacoes.length === 0) {
+      alert("Não há avaliações para exportar.")
+      return
+    }
+
+    const cabecalho = "ID,Avaliação,Data\n"
+
+    const linhas = avaliacoes.map(avaliacao => {
+      const data = new Date(avaliacao.Data)
+        .toLocaleString("pt-BR")
+        .replace(/,/g, "")
+
+      return `${avaliacao.Id},"${ratingLabel(avaliacao.Avaliacao)}","${data}"`
+    })
+
+    const csv = cabecalho + linhas.join("\n")
+
+    const blob = new Blob(
+      [csv],
+      { type: "text/csv;charset=utf-8;" }
+    )
+
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "relatorio-avaliacoes.csv"
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
+  }
+
+  useEffect(() => {
+    carregarAvaliacoes()
+  }, [])
+
+  const totalAvaliacoes = avaliacoes.length
+
+  const quantidadeExcelente = avaliacoes.filter(
+    a => ratingLabel(a.Avaliacao) === 'Excelente'
+  ).length
+
+  const quantidadeBom = avaliacoes.filter(
+    a => ratingLabel(a.Avaliacao) === 'Bom'
+  ).length
+
+  const quantidadeRazoavel = avaliacoes.filter(
+    a => ratingLabel(a.Avaliacao) === 'Razoável'
+  ).length
+
+  const quantidadeRuim = avaliacoes.filter(
+    a => ratingLabel(a.Avaliacao) === 'Ruim'
+  ).length
+
+  const quantidadePessimo = avaliacoes.filter(
+    a => ratingLabel(a.Avaliacao) === 'Péssimo'
+  ).length
+
+  const quantidadeRuimPessimo =
+    quantidadeRuim + quantidadePessimo
+
+  const pontuacaoTotal =
+    quantidadePessimo * 1 +
+    quantidadeRuim * 2 +
+    quantidadeRazoavel * 3 +
+    quantidadeBom * 4 +
+    quantidadeExcelente * 5
+
+  const pontuacaoMedia =
+    totalAvaliacoes > 0
+      ? pontuacaoTotal / totalAvaliacoes
+      : 0
+
+  const pontuacaoMediaFormatada =
+    pontuacaoMedia.toFixed(1)
+
+  const satisfacaoGeral =
+    totalAvaliacoes > 0
+      ? Math.round(
+          ((quantidadeExcelente + quantidadeBom) /
+            totalAvaliacoes) *
+            100
+        )
+      : 0  
+
+  const hoje = new Date()
+
+  const avaliacoesHoje = avaliacoes.filter(avaliacao => {
+    const dataAvaliacao = new Date(avaliacao.Data)
+
+    return (
+      dataAvaliacao.getFullYear() === hoje.getFullYear() &&
+      dataAvaliacao.getMonth() === hoje.getMonth() &&
+      dataAvaliacao.getDate() === hoje.getDate()
+    )
+  }).length
+
+  // Avaliações de ontem
+  const ontem = new Date()
+  ontem.setDate(ontem.getDate() - 1)
+
+  const avaliacoesOntem = avaliacoes.filter(avaliacao => {
+    const dataAvaliacao = new Date(avaliacao.Data)
+
+    return (
+      dataAvaliacao.getFullYear() === ontem.getFullYear() &&
+      dataAvaliacao.getMonth() === ontem.getMonth() &&
+      dataAvaliacao.getDate() === ontem.getDate()
+    )
+  }).length
+
+
+  // Percentual de satisfação de uma lista de avaliações
+  const calcularSatisfacao = (lista: Avaliacao[]) => {
+    if (lista.length === 0) return 0
+
+    const positivas = lista.filter(avaliacao => {
+      const rating = ratingLabel(avaliacao.Avaliacao)
+
+      return rating === 'Excelente' || rating === 'Bom'
+    }).length
+
+    return Math.round((positivas / lista.length) * 100)
+  }
+
+  const inicioSemanaAtual = new Date()
+  inicioSemanaAtual.setHours(0, 0, 0, 0)
+  inicioSemanaAtual.setDate(
+    inicioSemanaAtual.getDate() - 6
+  )
+
+  const inicioSemanaAnterior = new Date(inicioSemanaAtual)
+  inicioSemanaAnterior.setDate(
+    inicioSemanaAnterior.getDate() - 7
+  )
+
+  const fimSemanaAnterior = new Date(inicioSemanaAtual)
+  fimSemanaAnterior.setDate(
+    fimSemanaAnterior.getDate() - 1
+  )
+  fimSemanaAnterior.setHours(23, 59, 59, 999)
+
+
+  const avaliacoesSemanaAtual = avaliacoes.filter(avaliacao => {
+    const dataAvaliacao = new Date(avaliacao.Data)
+
+    return dataAvaliacao >= inicioSemanaAtual
+  })
+
+
+  const avaliacoesSemanaAnterior = avaliacoes.filter(avaliacao => {
+    const dataAvaliacao = new Date(avaliacao.Data)
+
+    return (
+      dataAvaliacao >= inicioSemanaAnterior &&
+      dataAvaliacao <= fimSemanaAnterior
+    )
+  })
+
+  const satisfacaoSemanaAtual =
+    calcularSatisfacao(avaliacoesSemanaAtual)
+
+  const satisfacaoSemanaAnterior =
+    calcularSatisfacao(avaliacoesSemanaAnterior)
+
+  const variacaoSatisfacao =
+    satisfacaoSemanaAtual - satisfacaoSemanaAnterior
+
+  const calcularPontuacaoMedia = (lista: Avaliacao[]) => {
+    if (lista.length === 0) return 0
+
+    let soma = 0
+
+    lista.forEach(avaliacao => {
+      const rating = ratingLabel(avaliacao.Avaliacao)
+
+      if (rating === 'Péssimo') soma += 1
+      if (rating === 'Ruim') soma += 2
+      if (rating === 'Razoável') soma += 3
+      if (rating === 'Bom') soma += 4
+      if (rating === 'Excelente') soma += 5
+    })
+
+    return soma / lista.length
+  }
+
+  const pontuacaoSemanaAtual =
+    calcularPontuacaoMedia(avaliacoesSemanaAtual)
+
+  const pontuacaoSemanaAnterior =
+    calcularPontuacaoMedia(avaliacoesSemanaAnterior)
+
+  const variacaoPontuacao =
+    pontuacaoSemanaAtual - pontuacaoSemanaAnterior
+
+  const variacaoAvaliacoesHoje =
+   avaliacoesHoje - avaliacoesOntem
+
+  const crescimentoSemanal =
+  avaliacoesSemanaAnterior.length > 0
+    ? Math.round(
+        (
+          (avaliacoesSemanaAtual.length -
+            avaliacoesSemanaAnterior.length) /
+          avaliacoesSemanaAnterior.length
+        ) * 100
+      )
+    : 0
+
+  const porcentagem = (quantidade: number) => {
+    if (totalAvaliacoes === 0) return 0
+
+    return Math.round(
+      (quantidade / totalAvaliacoes) * 100
+    )
+  } 
+
+  const ultimos7Dias = Array.from({ length: 7 }, (_, i) => {
+    const data = new Date()
+    data.setHours(0, 0, 0, 0)
+    data.setDate(data.getDate() - (6 - i))
+
+    return data
+  })
+
+  const dadosUltimos7Dias = ultimos7Dias.map(data => {
+
+   const quantidade = avaliacoes.filter(avaliacao => {
+      const dataAvaliacao = new Date(avaliacao.Data)
+
+      return (
+        dataAvaliacao.getFullYear() === data.getFullYear() &&
+        dataAvaliacao.getMonth() === data.getMonth() &&
+        dataAvaliacao.getDate() === data.getDate()
+      )
+    }).length
+
+    const dia = data
+      .toLocaleDateString('pt-BR', {
+        weekday: 'long'
+      })
+      .replace('-feira', '')
+
+    return {
+      dia: dia.charAt(0).toUpperCase() + dia.slice(1),
+      quantidade,
+    }
+  })
+
+  const barData = dadosUltimos7Dias.map(item => ({
+    day: item.dia,
+    avaliações: item.quantidade,
+  }))
+
+  const ultimas8Semanas = Array.from({ length: 8 }, (_, i) => {
+    const fim = new Date()
+    fim.setHours(23, 59, 59, 999)
+
+    fim.setDate(fim.getDate() - (7 - i) * 7)
+
+    const inicio = new Date(fim)
+    inicio.setDate(inicio.getDate() - 6)
+    inicio.setHours(0, 0, 0, 0)
+
+    return {
+      inicio,
+      fim,
+    }
+  })
+
+  const lineData = ultimas8Semanas.map((semana, index) => {
+    const avaliacoesDaSemana = avaliacoes.filter(avaliacao => {
+      const dataAvaliacao = new Date(avaliacao.Data)
+
+      return (
+        dataAvaliacao >= semana.inicio &&
+        dataAvaliacao <= semana.fim
+      )
+    })
+
+    let soma = 0
+
+    avaliacoesDaSemana.forEach(avaliacao => {
+      const rating = ratingLabel(avaliacao.Avaliacao)
+
+      if (rating === 'Péssimo') soma += 1
+      if (rating === 'Ruim') soma += 2
+      if (rating === 'Razoável') soma += 3
+      if (rating === 'Bom') soma += 4
+      if (rating === 'Excelente') soma += 5
+    })
+
+    const media =
+      avaliacoesDaSemana.length > 0
+        ? soma / avaliacoesDaSemana.length
+        : 0
+
+    return {
+      week: `Semana ${index + 1}`,
+      pontação: Number(media.toFixed(1)),
+    }
+  })
+
+  const contagemAvaliacoes = {
+    Excelente: avaliacoes.filter(
+      a => ratingLabel(a.Avaliacao) === 'Excelente'
+    ).length,
+
+    Bom: avaliacoes.filter(
+      a => ratingLabel(a.Avaliacao) === 'Bom'
+    ).length,
+
+    Razoável: avaliacoes.filter(
+      a => ratingLabel(a.Avaliacao) === 'Razoável'
+    ).length,
+
+    Ruim: avaliacoes.filter(
+      a => ratingLabel(a.Avaliacao) === 'Ruim'
+    ).length,
+
+    Péssimo: avaliacoes.filter(
+      a => ratingLabel(a.Avaliacao) === 'Péssimo'
+    ).length,
+  }
+
+  const exportarRelatorio = async () => {
+    if (!relatorioRef.current) {
+      return
+    }
+
+    try {
+      const imagem = await toPng(relatorioRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#f8fafc',
+      })
+
+      const link = document.createElement('a')
+
+      link.download = 'relatorio-avaliacoes.png'
+      link.href = imagem
+
+      link.click()
+    } catch (error) {
+      console.error('Erro ao exportar relatório:', error)
+      alert('Não foi possível exportar o relatório.')
+    }
+  }
+
+  const pieDataReal = [
+    {
+      name: 'Excelente',
+      value: contagemAvaliacoes.Excelente,
+      color: '#00B5CC',
+    },
+    {
+      name: 'Bom',
+      value: contagemAvaliacoes.Bom,
+      color: '#0eb374',
+    },
+    {
+      name: 'Razoável',
+      value: contagemAvaliacoes.Razoável,
+      color: '#EAB308',
+    },
+    {
+      name: 'Ruim',
+      value: contagemAvaliacoes.Ruim,
+      color: '#F97316',
+    },
+    {
+      name: 'Péssimo',
+      value: contagemAvaliacoes.Péssimo,
+      color: '#EF4444',
+    },
+  ]
 
   const statCards = [
-    { label: 'Total de Avaliações', value: '1,284', sub: '+12% este mês', color: '#00B5CC',
+    { label: 'Total de Avaliações', value: totalAvaliacoes.toLocaleString('pt-BR'), sub: `${avaliacoesHoje} hoje`, color: '#00B5CC',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
     },
-    { label: 'Excelente', value: '487', sub: '38% do total', color: '#00B5CC',
+    { label: 'Excelente', value: quantidadeExcelente.toString(), sub: `${porcentagem(quantidadeExcelente)}% do total`, color: '#00B5CC',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
     },
-    { label: 'Bom', value: '347', sub: '27% do total', color: '#0eb374',
+    { label: 'Bom', value: quantidadeBom.toString(), sub: `${porcentagem(quantidadeBom)}% do total`, color: '#0eb374',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
     },
-    { label: 'Razoável', value: '231', sub: '18% do total', color: '#EAB308',
+    { label: 'Razoável', value: quantidadeRazoavel.toString(), sub: `${porcentagem(quantidadeRazoavel)}% do total`, color: '#EAB308',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
     },
-    { label: 'Ruim + Péssimo', value: '219', sub: '17% do total', color: '#EF4444',
+    { label: 'Ruim + Péssimo', value: quantidadeRuimPessimo.toString(), sub: `${porcentagem(quantidadeRuimPessimo)}% do total`, color: '#EF4444',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
     },
   ]
 
   const kpiCards = [
-    { label: 'Satisfação Geral', value: '4.2 / 5.0', trend: '↑ 0.3 vs última semana', pos: true },
-    { label: 'Pontuação Média',        value: '84%',        trend: '↑ 5% vs última semana',  pos: true },
-    { label: "Avaliações de Hoje",  value: '68',         trend: '↑ 12 vs ontem',  pos: true },
-    { label: 'Crescimento Semanal',        value: '+12.4%',     trend: '2º melhor deste mês', pos: true },
+    {
+      label: 'Satisfação Geral',
+      value: `${pontuacaoMediaFormatada} / 5.0`,
+      trend: `${variacaoPontuacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoPontuacao).toFixed(1)} pts vs semana anterior`,
+      pos: variacaoPontuacao > 0 ? true : variacaoPontuacao < 0 ? false : null,
+    },
+
+    {
+      label: 'Pontuação Média',
+      value: `${satisfacaoGeral}%`,
+      trend: `${variacaoSatisfacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoSatisfacao)}% vs última semana`,
+      pos: variacaoSatisfacao > 0 ? true : variacaoSatisfacao < 0 ? false : null,
+    },
+
+    {
+      label: 'Avaliações de Hoje',
+      value: avaliacoesHoje.toString(),
+      trend: `${variacaoAvaliacoesHoje >= 0 ? '↑' : '↓'} ${Math.abs(variacaoAvaliacoesHoje)} vs ontem`,
+      pos: variacaoAvaliacoesHoje > 0 ? true : variacaoAvaliacoesHoje < 0 ? false : null,
+    },
+
+    {
+      label: 'Crescimento Semanal',
+      value: `${crescimentoSemanal >= 0 ? '+' : ''}${crescimentoSemanal}%`,
+      trend: `${avaliacoesSemanaAtual.length} avaliações nos últimos 7 dias`,
+      pos: crescimentoSemanal > 0 ? true : crescimentoSemanal < 0 ? false : null,
+    },
+
   ]
 
   const filtered = recentEvals.filter(e =>
@@ -685,18 +1136,9 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
             <p className="text-gray-500 text-sm">Hospital da Visão</p>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={dateFilter}
-              onChange={e => setDateFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600"
-            >
-              <option value="today">Hoje</option>
-              <option value="week">Essa Semana</option>
-              <option value="month">Esse Mês</option>
-            </select>
             <button
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-              onClick={() => {}}
+              onClick={carregarAvaliacoes}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
               Recarregar
@@ -704,6 +1146,7 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
             <button
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all"
               style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
+              onClick={exportarRelatorio}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>
               Exportar Relatório
@@ -717,7 +1160,17 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
             <div key={k.label} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
               <div className="text-xs font-medium text-gray-500">{k.label}</div>
               <div className="text-2xl font-bold text-gray-900 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{k.value}</div>
-              <div className={`text-xs mt-1 ${k.pos ? 'text-[#0eb374]' : 'text-red-400'}`}>{k.trend}</div>
+              <div
+                className={`text-xs mt-1 ${
+                  k.pos === true
+                    ? 'text-[#0eb374]'
+                    : k.pos === false
+                      ? 'text-red-400'
+                      : 'text-[#00B5CC]'
+                }`}
+              >
+                {k.trend}
+              </div>
             </div>
           ))}
         </div>
@@ -759,20 +1212,22 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
-                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={pieDataReal} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
+                  {pieDataReal.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-col gap-1.5 mt-2">
-              {pieData.map(d => (
+              {pieDataReal.map(d => (
                 <div key={d.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
                     <span className="text-gray-600">{d.name}</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{d.value}%</span>
+                  <span className="font-semibold text-gray-900">{porcentagem(d.value)}%</span>
                 </div>
               ))}
             </div>

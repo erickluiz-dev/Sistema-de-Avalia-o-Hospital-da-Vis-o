@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -52,6 +53,8 @@ func main() {
 	http.HandleFunc("/bom", incrementarBom)
 	http.HandleFunc("/excelente", incrementarExcelente)
 
+	http.HandleFunc("/avaliacoes", listarAvaliacoes)
+
 	f.Println("Servidor iniciado!")
 
 	handler := corsMiddleware(http.DefaultServeMux)
@@ -63,7 +66,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8443")
+		w.Header().Set("Access-Control-Allow-Origin", "*")		
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
@@ -190,4 +193,62 @@ func incrementarExcelente(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	f.Fprintln(w, "Avaliação registrada!")
+}
+
+func listarAvaliacoes(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	rows, err := db.Query(
+		context.Background(),
+		`
+		SELECT id, avaliacao, data_criacao
+		FROM avaliacoes
+		ORDER BY id DESC
+		`,
+	)
+
+	if err != nil {
+		log.Println("Erro ao buscar avaliações:", err)
+		http.Error(w, "Erro ao buscar avaliações", http.StatusInternalServerError)
+		return
+	}
+
+	defer rows.Close()
+
+	var avaliacoes []Avaliacoes
+
+	for rows.Next() {
+
+		var avaliacao Avaliacoes
+
+		err := rows.Scan(
+			&avaliacao.Id,
+			&avaliacao.Avaliacao,
+			&avaliacao.Data,
+		)
+
+		if err != nil {
+			log.Println("Erro ao ler avaliação:", err)
+			http.Error(w, "Erro ao ler avaliação", http.StatusInternalServerError)
+			return
+		}
+
+		avaliacoes = append(avaliacoes, avaliacao)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Erro nas linhas:", err)
+		http.Error(w, "Erro ao processar avaliações", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(avaliacoes)
+
+	f.Println("Número de avaliações: ", len(avaliacoes))
 }
