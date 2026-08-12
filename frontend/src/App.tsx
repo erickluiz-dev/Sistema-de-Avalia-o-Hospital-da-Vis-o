@@ -685,41 +685,80 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     }
   }
 
-  const exportarRelatorio = () => {
-    if (avaliacoes.length === 0) {
-      alert("Não há avaliações para exportar.")
+  const exportarRelatorio = async () => {
+    if (!relatorioRef.current) {
       return
     }
 
-    const cabecalho = "ID,Avaliação,Data\n"
+    const elemento = relatorioRef.current
 
-    const linhas = avaliacoes.map(avaliacao => {
-      const data = new Date(avaliacao.Data)
-        .toLocaleString("pt-BR")
-        .replace(/,/g, "")
+    try {
+      // Cria uma cópia do relatório
+      const clone = elemento.cloneNode(true) as HTMLDivElement
 
-      return `${avaliacao.Id},"${ratingLabel(avaliacao.Avaliacao)}","${data}"`
-    })
+      // Remove os elementos que não devem aparecer na imagem
+      clone.querySelectorAll('.nao-exportar').forEach((el) => {
+        el.remove()
+      })
 
-    const csv = cabecalho + linhas.join("\n")
+      // Define uma largura fixa para o relatório exportado
+      const largura = elemento.getBoundingClientRect().width
 
-    const blob = new Blob(
-      [csv],
-      { type: "text/csv;charset=utf-8;" }
-    )
+      clone.setAttribute('data-export-clone', 'true')
+      clone.style.width = `${largura}px`
+      clone.style.maxWidth = 'none'
+      clone.style.margin = '0'
+      clone.style.padding = '24px'
+      clone.style.boxSizing = 'border-box'
+      clone.style.background = '#f8fafc'
+      clone.style.position = 'fixed'
+      clone.style.left = '0'
+      clone.style.top = '0'
+      clone.style.zIndex = '-9999'
+      clone.style.display = 'flex'
+      clone.style.flexDirection = 'column'
+      clone.style.gap = '24px'
 
-    const url = URL.createObjectURL(blob)
+      // Adiciona temporariamente ao documento
+      document.body.appendChild(clone)
 
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "relatorio-avaliacoes.csv"
+      // Aguarda o navegador terminar de renderizar
+      await new Promise((resolve) => setTimeout(resolve, 300))
 
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      // Gera a imagem
+      const imagem = await toPng(clone, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#f8fafc',
+        width: clone.scrollWidth,
+        height: clone.scrollHeight,
+      })
 
-    URL.revokeObjectURL(url)
+      // Remove a cópia temporária
+      document.body.removeChild(clone)
+
+      // Faz o download
+      const link = document.createElement('a')
+      link.download = 'relatorio-avaliacoes.png'
+      link.href = imagem
+      link.click()
+
+    } catch (error) {
+      console.error('Erro ao exportar relatório:', error)
+
+      // Remove clone caso tenha ocorrido algum erro
+      const cloneExistente = document.querySelector(
+        'main[data-export-clone="true"]'
+      )
+
+      if (cloneExistente) {
+        cloneExistente.remove()
+      }
+
+      alert('Não foi possível exportar o relatório.')
+    }
   }
+
 
   useEffect(() => {
     carregarAvaliacoes()
@@ -1014,30 +1053,6 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     ).length,
   }
 
-  const exportarRelatorio = async () => {
-    if (!relatorioRef.current) {
-      return
-    }
-
-    try {
-      const imagem = await toPng(relatorioRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#f8fafc',
-      })
-
-      const link = document.createElement('a')
-
-      link.download = 'relatorio-avaliacoes.png'
-      link.href = imagem
-
-      link.click()
-    } catch (error) {
-      console.error('Erro ao exportar relatório:', error)
-      alert('Não foi possível exportar o relatório.')
-    }
-  }
-
   const pieDataReal = [
     {
       name: 'Excelente',
@@ -1124,11 +1139,14 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <NavBar onLogout={onLogout} subtitle="Menu Administrativo" />
 
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
+      <main
+        ref={relatorioRef}
+        className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6"
+      >
         {/* Page title + actions */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors">
+            <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
               Voltar ao menu principal
             </button>
@@ -1137,14 +1155,14 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar"
               onClick={carregarAvaliacoes}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
               Recarregar
             </button>
             <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all nao-exportar"
               style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
               onClick={exportarRelatorio}
             >
