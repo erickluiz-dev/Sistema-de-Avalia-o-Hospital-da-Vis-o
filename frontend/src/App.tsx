@@ -16,6 +16,19 @@ type Avaliacao = {
   Data: string
 }
 
+type Usuario = {
+  id: number
+  nome: string
+  login: string
+}
+
+const [usuario, setUsuario] = useState<Usuario | null>(null)
+
+const response = await fetch(`http://****:8080/me`, {
+  method: 'GET',
+  credentials: 'include',
+})
+
 const RATINGS: { key: RatingKey; label: string; color: string; bg: string; border: string; shadow: string; Icon: React.ElementType }[] = [
   { key: 'pessimo',   label: 'Péssimo',   color: '#C0392B', bg: '#FEF2F2', border: '#FECACA', shadow: 'rgba(192,57,43,0.25)',   Icon: Angry  },
   { key: 'ruim',      label: 'Ruim',      color: '#E05A2B', bg: '#FFF7ED', border: '#FED7AA', shadow: 'rgba(224,90,43,0.25)',   Icon: Frown  },
@@ -156,7 +169,26 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   )
 }
 
-function NavBar({ onLogout, subtitle }: { onLogout: () => void; subtitle: string }) {
+function NavBar({
+  onLogout,
+  subtitle,
+  usuario,
+}: {
+  onLogout: () => void
+  subtitle: string
+  usuario: Usuario | null
+}) {
+
+  const iniciais = usuario?.nome
+  ? usuario.nome
+      .split(' ')
+      .filter(Boolean)
+      .map(nome => nome[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+  : 'US'
+
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
       <div className="flex items-center gap-4">
@@ -167,9 +199,9 @@ function NavBar({ onLogout, subtitle }: { onLogout: () => void; subtitle: string
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-[#00B5CC] text-xs font-semibold">AM</span>
+            <span className="text-[#00B5CC] text-xs font-semibold">{iniciais}</span>
           </div>
-          <span className="text-gray-700 text-sm font-medium hidden sm:block">Admin Manager</span>
+          <span className="text-gray-700 text-sm font-medium hidden sm:block">{usuario?.nome ?? 'Usuário'}</span>
         </div>
         <button
           onClick={onLogout}
@@ -205,10 +237,66 @@ function StatCard({ label, value, sub, color = "#00B5CC", icon }: { label: strin
 
 // ─── Screen 1: Login ──────────────────────────────────────────────────────────
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('admin@hospitaldavisao.com.br')
-  const [password, setPassword] = useState('••••••••••••')
+function LoginScreen({
+  onLogin,
+}: {
+  onLogin: (usuario: Usuario) => void
+}) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
+
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+
+  const handleLogin = async () => {
+    setLoginError("")
+
+    if (!email.trim() || !password) {
+      setLoginError("Preencha o email e a senha.")
+      return
+    }
+
+    setLoginLoading(true)
+
+    try {
+      const response = await fetch(`http://****:8080/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          login: email.trim(),
+          senha: password,
+        }),
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Email ou senha inválidos.")
+        }
+
+        throw new Error("Não foi possível realizar o login.")
+      }
+
+      const usuario = await response.json()
+
+      console.log("Usuário autenticado:", usuario)
+
+      onLogin(usuario)
+
+    } catch (error) {
+      console.error("Erro no login:", error)
+
+      setLoginError(
+        error instanceof Error
+          ? error.message
+          : "Erro ao realizar login."
+      )
+    } finally {
+      setLoginLoading(false)
+    }
+  }
 
   //Data automaticamente para o dia atual
   
@@ -327,14 +415,20 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 </button>
               </div>
 
+              {loginError && (
+                  <div className="text-sm text-red-600 text-center">
+                    {loginError}
+                  </div>
+                )}
               <button
-                onClick={onLogin}
+                onClick={handleLogin}
+                disabled={loginLoading}
                 className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer mt-1"
                 style={{ background: "#00B5CC", boxShadow: '0 4px 16px #00b4cc59' }}
                 onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
               >
-                Entrar
+                {loginLoading ? "Entrando..." : "Entrar"}
               </button>
             </div>
 
@@ -452,7 +546,7 @@ function SurveyScreen({ onBack }: { onBack: () => void }) {
 
   const enviarAvaliacao = async (nota: RatingKey) => {
     try {
-      const response = await fetch(`http://localhost:8080/${nota}`, {
+      const response = await fetch(`http://****:8080/${nota}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -653,6 +747,8 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [carregando, setCarregando] = useState(true)
   const relatorioRef = useRef<HTMLDivElement>(null)
+  const [exportando, setExportando] = useState(false)
+  
 
   const recentEvals = avaliacoes
     .slice(0, 10)
@@ -667,7 +763,7 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       setCarregando(true)
 
       const response = await fetch(
-        "http://localhost:8080/avaliacoes"
+        "http://****:8080/avaliacoes"
       )
 
       if (!response.ok) {
@@ -693,6 +789,8 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     const elemento = relatorioRef.current
 
     try {
+      setExportando(true)
+
       // Cria uma cópia do relatório
       const clone = elemento.cloneNode(true) as HTMLDivElement
 
@@ -722,7 +820,7 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       // Adiciona temporariamente ao documento
       document.body.appendChild(clone)
 
-      // Aguarda o navegador terminar de renderizar
+      // Aguarda a renderização
       await new Promise((resolve) => setTimeout(resolve, 300))
 
       // Gera a imagem
@@ -746,7 +844,6 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     } catch (error) {
       console.error('Erro ao exportar relatório:', error)
 
-      // Remove clone caso tenha ocorrido algum erro
       const cloneExistente = document.querySelector(
         'main[data-export-clone="true"]'
       )
@@ -756,12 +853,15 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       }
 
       alert('Não foi possível exportar o relatório.')
+
+    } finally {
+      setExportando(false)
     }
   }
 
-
   useEffect(() => {
     carregarAvaliacoes()
+    verificarSessao()
   }, [])
 
   const totalAvaliacoes = avaliacoes.length
@@ -802,7 +902,7 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       : 0
 
   const pontuacaoMediaFormatada =
-    pontuacaoMedia.toFixed(1)
+    pontuacaoMedia.toFixed(2)
 
   const satisfacaoGeral =
     totalAvaliacoes > 0
@@ -1027,7 +1127,7 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
 
     return {
       week: `Semana ${index + 1}`,
-      pontação: Number(media.toFixed(1)),
+      pontuação: Number(media.toFixed(2)),
     }
   })
 
@@ -1135,190 +1235,220 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     e.terminal.toLowerCase().includes(search.toLowerCase())
   )
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <NavBar onLogout={onLogout} subtitle="Menu Administrativo" />
+  const LoadingOverlay = () => {
+    if (!carregando && !exportando) return null
 
-      <main
-        ref={relatorioRef}
-        className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6"
-      >
-        {/* Page title + actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-              Voltar ao menu principal
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>Análise Geral</h1>
-            <p className="text-gray-500 text-sm">Hospital da Visão</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar"
-              onClick={carregarAvaliacoes}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-              Recarregar
-            </button>
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all nao-exportar"
-              style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
-              onClick={exportarRelatorio}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>
-              Exportar Relatório
-            </button>
-          </div>
+    const mensagem = exportando
+      ? 'Exportando relatório...'
+      : 'Carregando avaliações...'
+
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+        <div className="flex min-w-[220px] flex-col items-center justify-center rounded-2xl bg-white px-8 py-7 shadow-xl">
+
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#00B5CC]" />
+
+          <p className="mt-4 text-sm font-medium text-gray-700">
+            {mensagem}
+          </p>
+
         </div>
+      </div>
+    )
+  }
 
-        {/* KPI row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpiCards.map(k => (
-            <div key={k.label} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
-              <div className="text-xs font-medium text-gray-500">{k.label}</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{k.value}</div>
-              <div
-                className={`text-xs mt-1 ${
-                  k.pos === true
-                    ? 'text-[#0eb374]'
-                    : k.pos === false
-                      ? 'text-red-400'
-                      : 'text-[#00B5CC]'
-                }`}
+  return (
+    <div className="relative min-h-screen">
+      <LoadingOverlay />
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <NavBar onLogout={onLogout} subtitle="Menu Administrativo" />
+
+        <main
+          ref={relatorioRef}
+          className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6"
+        >
+          {/* Page title + actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Voltar ao menu principal
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>Análise Geral</h1>
+              <p className="text-gray-500 text-sm">Hospital da Visão</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar"
+                onClick={carregarAvaliacoes}
+                disabled={carregando || exportando}
               >
-                {k.trend}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Recarregar
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all nao-exportar disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: 'linear-gradient(135deg,#04c7e0,#0697aa)',
+                  boxShadow: '0 2px 8px #00b4cc59'
+                }}
+                onClick={exportarRelatorio}
+                disabled={carregando || exportando}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>
+                Exportar Relatório
+              </button>
+            </div>
+          </div>
+
+          {/* KPI row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpiCards.map(k => (
+              <div key={k.label} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
+                <div className="text-xs font-medium text-gray-500">{k.label}</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{k.value}</div>
+                <div
+                  className={`text-xs mt-1 ${
+                    k.pos === true
+                      ? 'text-[#0eb374]'
+                      : k.pos === false
+                        ? 'text-red-400'
+                        : 'text-[#00B5CC]'
+                  }`}
+                >
+                  {k.trend}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {statCards.map(s => (
+              <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} color={s.color} icon={s.icon} />
+            ))}
+          </div>
+
+          {/* Charts row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Bar chart */}
+            <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Dia</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Últimos 7 dias</p>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={barData} barCategoryGap="35%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+                  <Bar dataKey="avaliações" fill="#00B5CC" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Pie chart */}
+            <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-900 text-sm">Distribuição de Satisfação</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Sempre</p>
+              </div>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie data={pieDataReal} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
+                    {pieDataReal.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-1.5 mt-2">
+                {pieDataReal.map(d => (
+                  <div key={d.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                      <span className="text-gray-600">{d.name}</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{porcentagem(d.value)}%</span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {statCards.map(s => (
-            <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} color={s.color} icon={s.icon} />
-          ))}
-        </div>
-
-        {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Bar chart */}
-          <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+          {/* Line chart */}
+          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Dia</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Últimos 7 dias</p>
+                <h3 className="font-semibold text-gray-900 text-sm">Histórico de Pontuação de Satisfação</h3>
+                <p className="text-xs text-gray-400 mt-0.5">tendência de 8 semanas</p>
               </div>
-              <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barData} barCategoryGap="35%">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
-                <Bar dataKey="avaliações" fill="#00B5CC" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Pie chart */}
-          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-            <div className="mb-4">
-              <h3 className="font-semibold text-gray-900 text-sm">Distribuição de Satisfação</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Sempre</p>
+              <div className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#0eb374] bg-green-50">↑ Tendência de Crescimento</div>
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie data={pieDataReal} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
-                  {pieDataReal.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
+              <LineChart data={lineData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
-              </PieChart>
+                <Line type="monotone" dataKey="pontuação" stroke="#00B5CC" strokeWidth={2.5} dot={{ fill: '#00B5CC', r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
             </ResponsiveContainer>
-            <div className="flex flex-col gap-1.5 mt-2">
-              {pieDataReal.map(d => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                    <span className="text-gray-600">{d.name}</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">{porcentagem(d.value)}%</span>
-                </div>
-              ))}
-            </div>
           </div>
-        </div>
 
-        {/* Line chart */}
-        <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">Histórico de Pontuação de Satisfação</h3>
-              <p className="text-xs text-gray-400 mt-0.5">tendência de 8 semanas</p>
+          {/* Recent evaluations table */}
+          <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+            <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Avaliações Recentes</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Últimos Envios</p>
+              </div>
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Pesquisar …"
+                  className="pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 w-52"
+                />
+              </div>
             </div>
-            <div className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#0eb374] bg-green-50">↑ Tendência de Crescimento</div>
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={lineData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-              <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
-              <Line type="monotone" dataKey="pontação" stroke="#00B5CC" strokeWidth={2.5} dot={{ fill: '#00B5CC', r: 4 }} activeDot={{ r: 6 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Recent evaluations table */}
-        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">Avaliações Recentes</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Últimos Envios</p>
-            </div>
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Pesquisar …"
-                className="pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 w-52"
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
-                  <th className="px-15 py-3 text-left">Data</th>
-                  <th className="px-15 py-3 text-left">Avaliação</th>
-                  <th className="px-0 py-3 text-left">Departamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((row, i) => (
-                  <tr key={i} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">{row.date}</td>
-                    <td className="px-15 py-3.5 whitespace-nowrap">
-                      <span className="font-semibold" style={{ color: ratingColor(row.rating) }}>{row.rating}</span>
-                    </td>
-                    <td className="px-1 py-3.5 text-gray-600">{row.terminal}</td>
-                    <td className="px-0 py-3.5">
-
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                    <th className="px-15 py-3 text-left">Data</th>
+                    <th className="px-15 py-3 text-left">Avaliação</th>
+                    <th className="px-0 py-3 text-left">Departamento</th>
                   </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 text-sm">No results found</td></tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((row, i) => (
+                    <tr key={i} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">{row.date}</td>
+                      <td className="px-15 py-3.5 whitespace-nowrap">
+                        <span className="font-semibold" style={{ color: ratingColor(row.rating) }}>{row.rating}</span>
+                      </td>
+                      <td className="px-1 py-3.5 text-gray-600">{row.terminal}</td>
+                      <td className="px-0 py-3.5">
+
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400 text-sm">No results found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
@@ -1327,13 +1457,74 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
+  const [usuario, setUsuario] = useState<Usuario | null>(null)  
+  const [verificandoSessao, setVerificandoSessao] = useState(true)
+
+  useEffect(() => {
+    const verificarSessao = async () => {
+      try {
+        const response = await fetch(`http://*/me`, {
+          method: 'GET',
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          setUsuario(null)
+          setScreen('login')
+          return
+        }
+
+        const usuarioAtual: Usuario = await response.json()
+
+        setUsuario(usuarioAtual)
+        setScreen('home')
+
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error)
+
+        setUsuario(null)
+        setScreen('login')
+
+      } finally {
+        setVerificandoSessao(false)
+      }
+    }
+
+    verificarSessao()
+  }, [])
+
+  if (verificandoSessao) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-[#00B5CC] rounded-full animate-spin" />
+
+          <span className="text-sm text-gray-500">
+            Verificando sessão...
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
-      {screen === 'login'     && <LoginScreen onLogin={() => setScreen('home')} />}
-      {screen === 'home'      && <HomeScreen onNav={setScreen} onLogout={() => setScreen('login')} />}
+      {screen === 'login'     && <LoginScreen
+        onLogin={(usuarioAutenticado) => {
+          setUsuario(usuarioAutenticado)
+          setScreen('home')
+        }}
+      />}
+      {screen === 'home' && (
+        <HomeScreen
+          usuario={usuario}
+          onNav={setScreen}
+          onLogout={() => setScreen('login')}
+        />
+      )}
       {screen === 'survey'    && <SurveyScreen onBack={() => setScreen('home')} />}
       {screen === 'dashboard' && <DashboardScreen onBack={() => setScreen('home')} onLogout={() => setScreen('login')} />}
     </>
   )
 }
+  
