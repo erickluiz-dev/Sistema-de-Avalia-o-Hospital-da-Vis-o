@@ -401,8 +401,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionID.String(),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   8 * 60 * 60,
 	})
 

@@ -22,7 +22,7 @@ type Usuario = {
   login: string
 }
 
-const API_BASE_URL = 'http://x:8080'
+const API_BASE_URL = import.meta.env.VITE_API_URL
 
 const RATINGS: { key: RatingKey; label: string; color: string; bg: string; border: string; shadow: string; Icon: React.ElementType }[] = [
   { key: 'pessimo',   label: 'Péssimo',   color: '#C0392B', bg: '#FEF2F2', border: '#FECACA', shadow: 'rgba(192,57,43,0.25)',   Icon: Angry  },
