@@ -22,12 +22,7 @@ type Usuario = {
   login: string
 }
 
-const [usuario, setUsuario] = useState<Usuario | null>(null)
-
-const response = await fetch(`http://****:8080/me`, {
-  method: 'GET',
-  credentials: 'include',
-})
+const API_BASE_URL = 'http://x:8080'
 
 const RATINGS: { key: RatingKey; label: string; color: string; bg: string; border: string; shadow: string; Icon: React.ElementType }[] = [
   { key: 'pessimo',   label: 'Péssimo',   color: '#C0392B', bg: '#FEF2F2', border: '#FECACA', shadow: 'rgba(192,57,43,0.25)',   Icon: Angry  },
@@ -260,8 +255,9 @@ function LoginScreen({
     setLoginLoading(true)
 
     try {
-      const response = await fetch(`http://****:8080/login`, {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -546,7 +542,7 @@ function SurveyScreen({ onBack }: { onBack: () => void }) {
 
   const enviarAvaliacao = async (nota: RatingKey) => {
     try {
-      const response = await fetch(`http://****:8080/${nota}`, {
+      const response = await fetch(`${API_BASE_URL}/${nota}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -762,9 +758,10 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
     try {
       setCarregando(true)
 
-      const response = await fetch(
-        "http://****:8080/avaliacoes"
-      )
+      const response = await fetch(`${API_BASE_URL}/avaliacoes`, {
+        method: "GET",
+        credentials: "include",
+      })
 
       if (!response.ok) {
         throw new Error("Erro ao buscar avaliações")
@@ -780,6 +777,10 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       setCarregando(false)
     }
   }
+
+  useEffect(() => {
+    carregarAvaliacoes()
+  }, [])
 
   const exportarRelatorio = async () => {
     if (!relatorioRef.current) {
@@ -858,11 +859,6 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       setExportando(false)
     }
   }
-
-  useEffect(() => {
-    carregarAvaliacoes()
-    verificarSessao()
-  }, [])
 
   const totalAvaliacoes = avaliacoes.length
 
@@ -1262,7 +1258,6 @@ function DashboardScreen({ onBack, onLogout }: { onBack: () => void; onLogout: (
       <LoadingOverlay />
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <NavBar onLogout={onLogout} subtitle="Menu Administrativo" />
-
         <main
           ref={relatorioRef}
           className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6"
@@ -1463,15 +1458,19 @@ export default function App() {
   useEffect(() => {
     const verificarSessao = async () => {
       try {
-        const response = await fetch(`http://*/me`, {
+        const response = await fetch(`${API_BASE_URL}/me`, {
           method: 'GET',
           credentials: 'include',
         })
 
-        if (!response.ok) {
+        if (response.status === 401) {
           setUsuario(null)
           setScreen('login')
           return
+        }
+
+        if (!response.ok) {
+          throw new Error(`Erro HTTP ${response.status}`)
         }
 
         const usuarioAtual: Usuario = await response.json()

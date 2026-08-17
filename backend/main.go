@@ -78,12 +78,7 @@ func main() {
 	)
 
 	//faz verificação do login
-	http.Handle(
-		"/login",
-		exigirAutenticacao(
-			http.HandlerFunc(loginHandler),
-		),
-	)
+	http.HandleFunc("/login", loginHandler)
 
 	//usário atual
 	http.HandleFunc("/me", usuarioAtualHandler)
@@ -94,16 +89,24 @@ func main() {
 
 	handler := corsMiddleware(http.DefaultServeMux)
 
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		w.Header().Set("Access-Control-Allow-Origin", "*")		
+		frontendURL := os.Getenv("FRONTEND_URL")
+
+		w.Header().Set("Access-Control-Allow-Origin", frontendURL)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Vary", "Origin")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -113,7 +116,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
 func salvarAvaliacao(avaliacao string) error {
 
 	_, err := db.Exec(
@@ -365,6 +367,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
 	// Senha correta: cria a sessão
 	sessionID := uuid.New()
 
@@ -474,6 +477,7 @@ func autenticarUsuario(r *http.Request) (int64, error) {
 	cookie, err := r.Cookie("session_id")
 
 	if err != nil {
+
 		return 0, err
 	}
 
@@ -558,8 +562,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   -1,
 	})
 
