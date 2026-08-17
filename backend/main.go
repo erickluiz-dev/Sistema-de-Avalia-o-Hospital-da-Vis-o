@@ -100,7 +100,7 @@ func main() {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		frontendURL := os.Getenv("FRONTEND_URL")
+		frontendURL := os.Getenv("https://sistema-de-avalia-o-hospital-da-vis.vercel.app")
 
 		w.Header().Set("Access-Control-Allow-Origin", frontendURL)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
