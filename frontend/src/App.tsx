@@ -422,9 +422,9 @@ function LoginScreen({
                   className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   {showPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
                     <Eye size={18} />
+                  ) : (
+                    <EyeOff size={18} />
                   )}
                 </button>
 
@@ -578,7 +578,7 @@ function HomeScreen({ onNav, onLogout, usuario }: { onNav: (s: Screen) => void; 
 
         <div className="flex items-center gap-2 text-xs text-[gray-400]">
           <div className="w-2 h-2 rounded-full bg-[#00B5CC] animate-pulse" />
-          Sistema operacional · Avaliações, 2026
+          Sistema operacional · Avaliações Hospital da Visão, 2026
         </div>
       </main>
     </div>
