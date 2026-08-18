@@ -366,7 +366,7 @@ function LoginScreen({
           <div className="bg-white rounded-3xl p-8 sm:p-10" style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
             {/* Logo placeholder */}
             <div className="flex justify-center mb-12">
-                  <img src="logo.png" alt="logo-HV" width="150" height="100" />
+                  <img src="/logo.png" alt="logo-HV" width="150" height="100" />
             </div>
 
             <h1 className="text-center text-gray-600 text-xl font-bold mb-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -526,7 +526,7 @@ function HomeScreen({ onNav, onLogout }: { onNav: (s: Screen) => void; onLogout:
 
         <div className="flex items-center gap-2 text-xs text-[gray-400]">
           <div className="w-2 h-2 rounded-full bg-[#00B5CC] animate-pulse" />
-          Sistema operacional · 7 de Agosto, 2026
+          Sistema operacional · 1.000.000.001, 2026
         </div>
       </main>
     </div>
@@ -635,7 +635,7 @@ function SurveyScreen({ onBack }: { onBack: () => void }) {
       {/* Minimal top bar */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
         <img
-          src="logo.png"
+          src="/logo.png"
           alt="Hospital da Visão"
           width="270"
           height="110"
