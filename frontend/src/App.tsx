@@ -526,7 +526,7 @@ function HomeScreen({ onNav, onLogout }: { onNav: (s: Screen) => void; onLogout:
 
         <div className="flex items-center gap-2 text-xs text-[gray-400]">
           <div className="w-2 h-2 rounded-full bg-[#00B5CC] animate-pulse" />
-          Sistema operacional · 1.000.00.003, 2026
+          Sistema operacional · Avaliações, 2026
         </div>
       </main>
     </div>
