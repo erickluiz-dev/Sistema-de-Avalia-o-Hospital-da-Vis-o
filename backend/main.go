@@ -405,7 +405,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteNoneMode,
 		MaxAge:   8 * 60 * 60,
 	})
-
 	resposta := UsuarioResposta{
 		Id:    id,
 		Nome:  nome,
