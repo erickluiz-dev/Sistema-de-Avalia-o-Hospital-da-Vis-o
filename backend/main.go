@@ -3,7 +3,7 @@ package main
 import (
 	f "fmt"
 	"log"
-
+	"time"
 	"backend/config"
 	"backend/database"
 	"backend/handlers"
@@ -15,6 +15,7 @@ import (
 var db *pgxpool.Pool
 
 func main() {
+
 	cfg := config.Load()
 
 	if cfg.DatabaseURL == "" {
@@ -51,11 +52,17 @@ func main() {
 
 	loginLimiter := middleware.NewLoginLimiter()
 
+	rateLimiter := middleware.NewRateLimiter(
+		100,
+		time.Minute,
+	)
+
 	handler := configurarRotas(
 		authHandler,
 		avaliacaoHandler,
 		departamentoHandler,
 		loginLimiter,
+		rateLimiter,
 	)
 
 	f.Println("Servidor iniciado!")
@@ -64,3 +71,4 @@ func main() {
 
 	log.Fatal(servidor.ListenAndServe())
 }
+

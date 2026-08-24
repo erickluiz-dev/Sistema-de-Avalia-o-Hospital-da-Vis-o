@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-
 	"backend/handlers"
 	"backend/middleware"
 )
@@ -12,6 +11,7 @@ func configurarRotas(
 	avaliacaoHandler *handlers.AvaliacaoHandler,
 	departamentoHandler *handlers.DepartamentoHandler,
 	loginLimiter *middleware.LoginLimiter,
+	rateLimiter *middleware.RateLimiter,
 ) http.Handler {
 
 	mux := http.NewServeMux()
@@ -58,5 +58,7 @@ func configurarRotas(
 
 	mux.HandleFunc("/departamentos", departamentoHandler.Listar)
 
-	return middleware.CORS(mux)
+	return middleware.CORS(
+		rateLimiter.Middleware(mux),
+	)
 }
