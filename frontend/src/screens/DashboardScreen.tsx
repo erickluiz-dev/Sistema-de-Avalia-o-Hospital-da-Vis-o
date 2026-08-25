@@ -274,7 +274,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     estatisticas?.pontuacao_media ?? 0
 
   const pontuacaoMediaFormatada =
-  pontuacaoMedia.toFixed(2).replace('.', ',')
+  pontuacaoMedia.toFixed(2).replace('.', '.')
 
   const satisfacaoGeral =
     totalAvaliacoesGeral > 0
@@ -443,7 +443,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     {
       label: 'Pontuação Média',
       value: `${satisfacaoGeral.toFixed(2).replace('.', '.')}%`,
-      trend: `${variacaoSatisfacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoSatisfacao).toFixed(2).replace('.', ',')}% vs última semana`,
+      trend: `${variacaoSatisfacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoSatisfacao).toFixed(2).replace('.', '.')}% vs última semana`,
       pos: variacaoSatisfacao > 0 ? true : variacaoSatisfacao < 0 ? false : null,
     },
 
