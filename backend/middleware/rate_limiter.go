@@ -1,11 +1,10 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 type clientData struct {
@@ -18,21 +17,31 @@ type RateLimiter struct {
 	clients    map[string]*clientData
 	limit      int
 	window     time.Duration
+	ipResolver *ClientIPResolver
 }
 
-func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-	return &RateLimiter{
+func NewRateLimiter(
+	limit int,
+	window time.Duration,
+) *RateLimiter {
+	rl := &RateLimiter{
 		clients: make(map[string]*clientData),
 		limit:   limit,
 		window:  window,
+
+		ipResolver: NewClientIPResolver(),
 	}
+
+	go rl.cleanupLoop()
+
+	return rl
 }
 
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		retryAfter := int(rl.window.Seconds())
 
-		ip := clientIP(r)
+		ip := rl.ipResolver.ObterIP(r)
 
 		rl.mu.Lock()
 
@@ -75,24 +84,24 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func clientIP(r *http.Request) string {
-	// Para ambiente local e configuração simples,
-	// RemoteAddr é suficiente.
-	ip := r.RemoteAddr
+func (rl *RateLimiter) cleanupLoop() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
 
-	if host, _, ok := splitHostPort(ip); ok {
-		return host
+	for range ticker.C {
+		rl.limparExpirados()
 	}
-
-	return ip
 }
 
-func splitHostPort(address string) (string, string, bool) {
-	host, port, err := net.SplitHostPort(address)
+func (rl *RateLimiter) limparExpirados() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
 
-	if err != nil {
-		return "", "", false
+	agora := time.Now()
+
+	for ip, client := range rl.clients {
+		if agora.Sub(client.windowStart) >= rl.window {
+			delete(rl.clients, ip)
+		}
 	}
-
-	return host, port, true
 }

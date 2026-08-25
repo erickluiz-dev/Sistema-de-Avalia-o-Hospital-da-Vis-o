@@ -14,7 +14,7 @@ import (
 )
 
 type AuthHandler struct {
-	DB *pgxpool.Pool
+	DB           *pgxpool.Pool
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +22,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(
+		w,
+		r.Body,
+		10<<10,
+	)
 
 	var req models.LoginRequest
 

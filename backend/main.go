@@ -38,6 +38,8 @@ func main() {
 
 	f.Println("Banco de dados conectado!")
 
+	loginLimiter := middleware.NewLoginLimiter()
+
 	authHandler := &handlers.AuthHandler{
 		DB: db,
 	}
@@ -49,8 +51,6 @@ func main() {
 	departamentoHandler := &handlers.DepartamentoHandler{
 		DB: db,
 	}
-
-	loginLimiter := middleware.NewLoginLimiter()
 
 	rateLimiter := middleware.NewRateLimiter(
 		100,
