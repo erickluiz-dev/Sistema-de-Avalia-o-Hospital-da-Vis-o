@@ -2,6 +2,7 @@ import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
+import { VitePWA } from 'vite-plugin-pwa'
 
 import siteConfiguration from './.figma/make/site.json'
 
@@ -17,6 +18,32 @@ export default defineConfig(({ mode }) => {
       minify: !emitSourcemaps,
     },
     plugins: [
+      VitePWA({
+        registerType: 'autoUpdate',
+
+        manifest: {
+          name: 'Avaliações Hospital da Visão',
+          short_name: 'Hospital da Visão',
+          description: 'Sistema de avaliação de satisfação do paciente',
+          start_url: '/',
+          display: 'standalone',
+          background_color: '#f8fafc',
+          theme_color: '#00B5CC',
+
+          icons: [
+            {
+              src: '/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+          ],
+        },
+      }),
       react(),
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
