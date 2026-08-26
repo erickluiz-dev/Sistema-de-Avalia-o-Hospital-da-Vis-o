@@ -1,0 +1,22 @@
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Binários Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Executáveis gerados
+backend
+
+# Cobertura de testes
+coverage.out
+coverage.html
+
+# Diretórios temporários
+tmp/
+temp/

@@ -16,6 +16,11 @@ import {
   Legend,
 } from 'recharts'
 
+import {
+  ratingLabel,
+  ratingColor,
+} from '../utils/ratings'
+
 import { toPng } from 'html-to-image'
 
 import NavBar from '../components/NavBar'
@@ -30,37 +35,6 @@ import type {
   Estatisticas,
 } from '../types'
 
-function ratingLabel(r: string) {
-  const rating = r
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-
-  if (rating === "excelente") return "Excelente"
-  if (rating === "bom") return "Bom"
-  if (rating === "razoavel") return "Razoável"
-  if (rating === "ruim") return "Ruim"
-  if (rating === "pessimo") return "Péssimo"
-
-  return r
-}
-
-function ratingColor(r: string) {
-  const rating = r
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-
-  if (rating === "excelente") return "#00B5CC"
-  if (rating === "bom") return "#0eb374"
-  if (rating === "razoavel") return "#EAB308"
-  if (rating === "ruim") return "#F97316"
-  if (rating === "pessimo") return "#EF4444"
-
-  return "#6b7280"
-}
 // ─── Screen 4: Admin Dashboard ────────────────────────────────────────────────
 
 export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack: () => void; onLogout: () => void;  usuario: Usuario | null }) {

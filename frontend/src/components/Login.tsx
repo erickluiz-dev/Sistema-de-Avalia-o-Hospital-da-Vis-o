@@ -47,8 +47,6 @@ function LoginScreen({ onLogin }: LoginScreenProps) {
 
       const usuario = await response.json()
 
-      console.log("Usuário autenticado:", usuario)
-
       onLogin(usuario)
 
     } catch (error) {
@@ -334,11 +332,7 @@ function LoginScreen({ onLogin }: LoginScreenProps) {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log(
-                      'Recuperação de senha ainda não implementada'
-                    )
-                  }}
+                  onClick={() => { }}
                   className="text-sm text-[#00B5CC] hover:text-blue-700 font-medium transition-colors cursor-pointer"
                 >
                   Esqueci a senha?

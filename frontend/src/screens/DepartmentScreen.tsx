@@ -66,7 +66,7 @@ function DepartmentScreen({
             setDepartamentoSelecionado(e.target.value)
           }
           disabled={loading}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00B5CC] focus:border-[#00B5CC]"
+          className=" w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00B5CC] focus:border-[#00B5CC]"
         >
           <option value="">
             {loading
@@ -83,6 +83,9 @@ function DepartmentScreen({
             </option>
           ))}
         </select>
+
+        
+
 
         <button
           type="button"

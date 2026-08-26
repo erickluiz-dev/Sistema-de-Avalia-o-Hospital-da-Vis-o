@@ -1,24 +1,11 @@
 
-import type { RatingKey, Departamento } from '../types'
-import { useEffect, useState } from 'react'
+import type { RatingKey} from '../types'
+import { useState } from 'react'
 import { apiFetch } from '../services/api'
 import { RATINGS } from '../constants/ratings'
 
-function ratingLabel(r: string) {
-  const rating = r
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
 
-  if (rating === 'excelente') return 'Excelente'
-  if (rating === 'bom') return 'Bom'
-  if (rating === 'razoavel') return 'Razoável'
-  if (rating === 'ruim') return 'Ruim'
-  if (rating === 'pessimo') return 'Péssimo'
 
-  return r
-}
 
 type SurveyScreenProps = {
   onBack: () => void
