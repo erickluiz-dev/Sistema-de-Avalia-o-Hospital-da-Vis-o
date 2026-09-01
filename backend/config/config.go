@@ -10,7 +10,7 @@ import (
 type Config struct {
 	DatabaseURL    string
 	Port           string
-	FrontendURL string
+	ALLOWED_ORIGINS string
 }
 
 func Load() Config {
@@ -29,6 +29,6 @@ func Load() Config {
 	return Config{
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		Port:           port,
-		FrontendURL: os.Getenv("FrontendURL"),
+		ALLOWED_ORIGINS: os.Getenv("ALLOWED_ORIGINS"),
 	}
 }
