@@ -4,6 +4,7 @@ export type Screen =
   | 'department'
   | 'survey'
   | 'dashboard'
+  | 'management'
 
 export type RatingKey =
   | 'pessimo'
@@ -18,6 +19,8 @@ export type Avaliacao = {
   data: string
   departamento_id: number
   departamento: string
+  terminal: string
+  funcionario: string
 }
 
 export type Usuario = {
@@ -50,6 +53,8 @@ export type Estatisticas = {
   avaliacoes_hoje: number
   avaliacoes_ontem: number
 
+  satisfacao_geral: number
+
   avaliacoes_semana_atual: number
   avaliacoes_semana_anterior: number
 
@@ -61,7 +66,9 @@ export type Estatisticas = {
   satisfacao_semana_anterior: number
   avaliacoes_ultimos_7_dias: AvaliacaoPorDia[]
   historico_pontuacao: HistoricoPontuacao[]
-
+  satisfacao_por_mes: SatisfacaoPorMes[]
+  avaliacao_por_departamento: AvaliacaoPorDepartamento[]
+  avaliacao_por_funcionario: AvaliacaoPorFuncionario[]
 }
 
 export type AvaliacaoPorDia = {
@@ -72,4 +79,31 @@ export type AvaliacaoPorDia = {
 export type HistoricoPontuacao = {
   semana: string
   pontuacao: number
+}
+
+export type SatisfacaoPorMes = {
+  mes: string
+  satisfacao: number
+}
+
+export type AvaliacaoPorDepartamento = {
+  departamento_id: number
+  departamento: string
+  pontuacao: number
+}
+
+export type AvaliacaoPorFuncionario = {
+  funcionario_id: number
+  funcionario: string
+  excelente: number
+  bom: number
+  razoavel: number
+  ruim: number
+  pessimo: number
+}
+
+export type Terminal = {
+  id: number
+  terminal: string
+  departamento_id: number
 }

@@ -4,17 +4,16 @@ import { useState } from 'react'
 import { apiFetch } from '../services/api'
 import { RATINGS } from '../constants/ratings'
 
-
-
-
 type SurveyScreenProps = {
-  onBack: () => void
   departamentoId: number
+  terminalId: number
+  onBack: () => void
 }
 
 export default function SurveyScreen({
-  onBack,
   departamentoId,
+  terminalId,
+  onBack,
 }: SurveyScreenProps) {
   const [selected, setSelected] = useState<RatingKey | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -28,6 +27,7 @@ export default function SurveyScreen({
         body: JSON.stringify({
           avaliacao: nota,
           departamento_id: departamentoId,
+          terminal_id: terminalId,
         }),
       })
 

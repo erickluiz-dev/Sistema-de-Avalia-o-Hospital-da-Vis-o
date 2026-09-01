@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"bytes"
 )
 
 type LoginAttempt struct {
@@ -106,6 +107,24 @@ func (l *LoginLimiter) ObterIP(
 	return l.ipResolver.ObterIP(r)
 }
 
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *statusRecorder) Write(data []byte) (int, error) {
+	if r.status == 0 {
+		r.status = http.StatusOK
+	}
+
+	return r.ResponseWriter.Write(data)
+}
+
 func (l *LoginLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -148,7 +167,7 @@ func (l *LoginLimiter) Middleware(next http.Handler) http.Handler {
 		r.Body.Close()
 
 		r.Body = io.NopCloser(
-			strings.NewReader(string(body)),
+			bytes.NewReader(body),
 		)
 
 		var req struct {
@@ -187,7 +206,26 @@ func (l *LoginLimiter) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+		}
+
+		next.ServeHTTP(recorder, r)
+
+		// Login bem-sucedido.
+		if recorder.status >= 200 &&
+			recorder.status < 300 {
+
+			l.Limpar(
+				l.tentativasIP,
+				ip,
+			)
+
+			l.Limpar(
+				l.tentativasUsuario,
+				login,
+			)
+		}
 	})
 }
 

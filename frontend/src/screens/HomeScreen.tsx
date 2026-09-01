@@ -65,7 +65,46 @@ export default function HomeScreen({
       shadow: '#00b4cc59',
       accent: '#E0F2FE',
     },
-  ]
+
+    {
+    icon: (
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+        <circle
+          cx="9"
+          cy="8"
+          r="3"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 11c2.761 0 5 2.239 5 5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 5.5a2.5 2.5 0 1 1 0 5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+      </svg>
+    ),
+    title: 'Gerenciamento',
+    desc: 'Gerencie usuários, funcionários, departamentos e terminais.',
+    btn: 'Acessar Gerenciamento',
+    color: '#00B5CC',
+    screen: 'management' as Screen,
+    gradient: '#00B5CC',
+    shadow: '#00b4cc59',
+    accent: '#E0F2FE',
+  },
+]
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -75,7 +114,7 @@ export default function HomeScreen({
         usuario={usuario}
       />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8 w-full">
         <div className="text-center">
           <h1
             className="text-3xl font-bold text-gray-900"
@@ -89,7 +128,7 @@ export default function HomeScreen({
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl">
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-4xl">
           {cards.map((card) => (
             <div
               key={card.title}
@@ -162,6 +201,8 @@ export default function HomeScreen({
             </div>
           ))}
         </div>
+
+        
 
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <div className="w-2 h-2 rounded-full bg-[#00B5CC] animate-pulse" />

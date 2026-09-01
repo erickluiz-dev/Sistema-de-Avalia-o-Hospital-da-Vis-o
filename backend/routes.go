@@ -10,6 +10,8 @@ func configurarRotas(
 	authHandler *handlers.AuthHandler,
 	avaliacaoHandler *handlers.AvaliacaoHandler,
 	departamentoHandler *handlers.DepartamentoHandler,
+	terminalHandler *handlers.TerminalHandler,
+	gerenciamentoHandler *handlers.GerenciamentoHandler,
 	loginLimiter *middleware.LoginLimiter,
 	rateLimiter *middleware.RateLimiter,
 ) http.Handler {
@@ -19,7 +21,7 @@ func configurarRotas(
 	mux.Handle(
 		"/avaliacoes/estatisticas",
 		middleware.ExigirAutenticacao(
-			authHandler,
+			authHandler.Authenticate,
 			http.HandlerFunc(avaliacaoHandler.Estatisticas),
 		),
 	)
@@ -29,7 +31,7 @@ func configurarRotas(
 
 		case http.MethodGet:
 			middleware.ExigirAutenticacao(
-				authHandler,
+				authHandler.Authenticate,
 				http.HandlerFunc(avaliacaoHandler.Listar),
 			).ServeHTTP(w, r)
 
@@ -58,7 +60,79 @@ func configurarRotas(
 
 	mux.HandleFunc("/departamentos", departamentoHandler.Listar)
 
-	return middleware.CORS(
-		rateLimiter.Middleware(mux),
+	mux.HandleFunc(
+		"/terminais",
+		terminalHandler.Listar,
+	)
+
+	mux.Handle(
+		"/admin/usuarios",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.Usuarios),
+		),
+	)
+
+	mux.Handle(
+  		"/admin/funcionarios",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.Funcionarios),
+		),
+	)
+
+	mux.Handle(
+		"/admin/funcionarios/",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.FuncionarioPorID),
+		),
+	)
+
+	mux.Handle(
+		"/admin/terminais",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.Terminais),
+		),
+	)
+
+	mux.Handle(
+		"/admin/terminais/",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.AtualizarTerminal),
+		),
+	)
+
+	mux.Handle(
+		"/admin/departamentos",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.Departamentos),
+		),
+	)
+
+	mux.Handle(
+		"/admin/departamentos/",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.AtualizarDepartamento),
+		),
+	)
+
+	mux.Handle(
+		"/admin/usuarios/",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(gerenciamentoHandler.AtualizarUsuario),
+		),
+	)
+
+	return middleware.SecurityHeaders(
+		middleware.CORS(
+			rateLimiter.Middleware(mux),
+		),
 	)
 }
+

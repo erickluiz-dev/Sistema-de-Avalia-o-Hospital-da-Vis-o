@@ -1,13 +1,25 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 type Config struct {
-	DatabaseURL string
-	Port        string
+	DatabaseURL    string
+	Port           string
+	AllowedOrigins string
 }
 
 func Load() Config {
+	if err := godotenv.Load(); err != nil {
+		if !os.IsNotExist(err) {
+			log.Println("Aviso: erro ao carregar .env:", err)
+		}
+	}
+
 	port := os.Getenv("PORT")
 
 	if port == "" {
@@ -15,7 +27,8 @@ func Load() Config {
 	}
 
 	return Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Port:        port,
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		Port:           port,
+		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
 	}
 }

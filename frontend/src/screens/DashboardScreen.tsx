@@ -33,12 +33,17 @@ import type {
   AvaliacoesPaginadas,
   Usuario,
   Estatisticas,
+  AvaliacaoPorFuncionario,
 } from '../types'
 
 // ─── Screen 4: Admin Dashboard ────────────────────────────────────────────────
 
 export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack: () => void; onLogout: () => void;  usuario: Usuario | null }) {
   const [search, setSearch] = useState('')
+  const [funcionarioSearch, setFuncionarioSearch] = useState('')
+  const [funcionarioSelecionado, setFuncionarioSelecionado] =
+    useState<AvaliacaoPorFuncionario | null>(null)
+  const [indiceFuncionario, setIndiceFuncionario] = useState(0)
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
 
   const [pagina, setPagina] = useState(1)
@@ -52,6 +57,9 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
   const [exportando, setExportando] = useState(false)
   const [estatisticas, setEstatisticas] =
     useState<Estatisticas | null>(null)
+
+  const [mostrarSugestoesFuncionario, setMostrarSugestoesFuncionario] =
+    useState(false)
 
   const carregarEstatisticas = async () => {
     try {
@@ -80,12 +88,13 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     }
   }
 
-  const recentEvals = avaliacoes
-    .map((avaliacao) => ({
-      date: new Date(avaliacao.data).toLocaleString("pt-BR"),
-      rating: ratingLabel(avaliacao.avaliacao),
-      terminal: avaliacao.departamento,
-    }))
+  const recentEvals = avaliacoes.map((avaliacao) => ({
+    date: new Date(avaliacao.data).toLocaleString('pt-BR'),
+    rating: ratingLabel(avaliacao.avaliacao),
+    departamento: avaliacao.departamento,
+    terminal: avaliacao.terminal,
+    funcionario: avaliacao.funcionario,
+  }))
 
   const carregarAvaliacoes = async (
     paginaAtual = pagina,
@@ -248,19 +257,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     estatisticas?.pontuacao_media ?? 0
 
   const pontuacaoMediaFormatada =
-  pontuacaoMedia.toFixed(2).replace('.', '.')
-
-  const satisfacaoGeral =
-    totalAvaliacoesGeral > 0
-      ? (
-          (
-            (quantidadeExcelente + quantidadeBom) /
-            totalAvaliacoesGeral
-          ) * 100
-        )
-      : 0
-
-  const hoje = new Date()
+  pontuacaoMedia.toFixed(2)
 
   const avaliacoesHoje =
     estatisticas?.avaliacoes_hoje ?? 0
@@ -300,17 +297,17 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
   const barData =
     estatisticas?.avaliacoes_ultimos_7_dias ?? []
 
+  const avaliacaoDepartamentos =
+    estatisticas?.avaliacao_por_departamento ?? []
+
   const historicoPontuacao =
     estatisticas?.historico_pontuacao ?? []
 
-  const satisfacaoSemanaAtual =
-    estatisticas?.satisfacao_semana_atual ?? 0
+  const satisfacaoPorMes =
+  estatisticas?.satisfacao_por_mes ?? []
 
-  const satisfacaoSemanaAnterior =
-    estatisticas?.satisfacao_semana_anterior ?? 0
-
-  const variacaoSatisfacao =
-    satisfacaoSemanaAtual - satisfacaoSemanaAnterior
+  const satisfacaoGeral =
+    estatisticas?.satisfacao_geral ?? 0
     
   const porcentagem = (quantidade: number) => {
     if (totalAvaliacoesGeral === 0) return 0
@@ -320,37 +317,8 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     )
   }
 
-  const ultimos7Dias = Array.from({ length: 7 }, (_, i) => {
-    const data = new Date()
-    data.setHours(0, 0, 0, 0)
-    data.setDate(data.getDate() - (6 - i))
-
-    return data
-  })
-
-  const dadosUltimos7Dias = ultimos7Dias.map(data => {
-
-   const quantidade = avaliacoes.filter(avaliacao => {
-      const dataAvaliacao = new Date(avaliacao.data)
-
-      return (
-        dataAvaliacao.getFullYear() === data.getFullYear() &&
-        dataAvaliacao.getMonth() === data.getMonth() &&
-        dataAvaliacao.getDate() === data.getDate()
-      )
-    }).length
-
-    const dia = data
-      .toLocaleDateString('pt-BR', {
-        weekday: 'long'
-      })
-      .replace('-feira', '')
-
-    return {
-      dia: dia.charAt(0).toUpperCase() + dia.slice(1),
-      quantidade,
-    }
-  })
+  const avaliacaoFuncionarios =
+    estatisticas?.avaliacao_por_funcionario ?? []
 
   const contagemAvaliacoes = {
     Excelente: quantidadeExcelente,
@@ -410,15 +378,15 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     {
       label: 'Satisfação Geral',
       value: `${pontuacaoMediaFormatada} / 5.0`,
-      trend: `${variacaoPontuacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoPontuacao).toFixed(1)} pts vs semana anterior`,
-      pos: variacaoPontuacao > 0 ? true : variacaoPontuacao < 0 ? false : null,
+      trend: 'Todo o período',
+      pos: null,
     },
 
     {
       label: 'Pontuação Média',
-      value: `${satisfacaoGeral.toFixed(2).replace('.', '.')}%`,
-      trend: `${variacaoSatisfacao >= 0 ? '↑' : '↓'} ${Math.abs(variacaoSatisfacao).toFixed(2).replace('.', '.')}% vs última semana`,
-      pos: variacaoSatisfacao > 0 ? true : variacaoSatisfacao < 0 ? false : null,
+      value: `${satisfacaoGeral.toFixed(2)}%`,
+      trend: 'Todo o período',
+      pos: null,
     },
 
     {
@@ -459,6 +427,150 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
     )
   }
 
+  const DepartamentoTick = ({
+    x = 0,
+    y = 0,
+    payload,
+  }: {
+    x?: number
+    y?: number
+    payload?: {
+      value: string
+    }
+  }) => {
+    const nome = payload?.value ?? ''
+
+    const partes = nome.split(' ')
+
+    if (partes.length <= 2) {
+      return (
+        <text
+          x={x}
+          y={y}
+          dy={14}
+          textAnchor="middle"
+          fill="#9ca3af"
+          fontSize={12}
+        >
+          {nome}
+        </text>
+      )
+    }
+
+    const meio = Math.ceil(partes.length / 2)
+
+    const linha1 = partes.slice(0, meio).join(' ')
+    const linha2 = partes.slice(meio).join(' ')
+
+    return (
+      <text
+        x={x}
+        y={y}
+        textAnchor="middle"
+        fill="#9ca3af"
+        fontSize={11}
+      >
+        <tspan
+          x={x}
+          dy={12}
+        >
+          {linha1}
+        </tspan>
+
+        <tspan
+          x={x}
+          dy={14}
+        >
+          {linha2}
+        </tspan>
+      </text>
+    )
+  }
+
+  const funcionariosFiltrados =
+    avaliacaoFuncionarios.filter((funcionario) =>
+      funcionario.funcionario
+        .toLowerCase()
+        .includes(funcionarioSearch.toLowerCase())
+    )
+
+  const funcionarioAtual =
+    funcionarioSelecionado ??
+    avaliacaoFuncionarios[indiceFuncionario] ??
+    null
+
+  const dadosFuncionario = funcionarioAtual
+    ? [
+        {
+          name: 'Excelente',
+          value: funcionarioAtual.excelente,
+          color: '#00B5CC',
+        },
+        {
+          name: 'Bom',
+          value: funcionarioAtual.bom,
+          color: '#0eb374',
+        },
+        {
+          name: 'Razoável',
+          value: funcionarioAtual.razoavel,
+          color: '#EAB308',
+        },
+        {
+          name: 'Ruim',
+          value: funcionarioAtual.ruim,
+          color: '#F97316',
+        },
+        {
+          name: 'Péssimo',
+          value: funcionarioAtual.pessimo,
+          color: '#EF4444',
+        },
+      ]
+    : []
+
+  const porcentagemFuncionario = (quantidade: number) => {
+    const total =
+      funcionarioAtual
+        ? funcionarioAtual.excelente +
+          funcionarioAtual.bom +
+          funcionarioAtual.razoavel +
+          funcionarioAtual.ruim +
+          funcionarioAtual.pessimo
+        : 0
+
+    if (total === 0) {
+      return 0
+    }
+
+    return Math.round(
+      (quantidade / total) * 100
+    )
+  }
+
+  useEffect(() => {
+    if (funcionarioSelecionado) {
+      return
+    }
+
+    if (avaliacaoFuncionarios.length === 0) {
+      return
+    }
+
+    const intervalo = window.setInterval(() => {
+      setIndiceFuncionario((atual) =>
+        (atual + 1) % avaliacaoFuncionarios.length
+      )
+    }, 3000)
+
+    return () => {
+      window.clearInterval(intervalo)
+    }
+  }, [
+    funcionarioSelecionado,
+    avaliacaoFuncionarios.length,
+  ])
+  
   return (
     <div className="relative min-h-screen">
       <LoadingOverlay />
@@ -598,7 +710,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                 <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip
                   formatter={(value) => [
-                    Number(value).toFixed(2).replace('.', '.'),
+                    Number(value).toFixed(2),
                     'Pontuação',
                   ]}
                   contentStyle={{
@@ -609,6 +721,277 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                   }}
                 />
                 <Line type="monotone" dataKey="pontuacao" stroke="#00B5CC" strokeWidth={2.5} dot={{ fill: '#00B5CC', r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Charts row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Bar chart */}
+            <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Departamento</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Satisfação Geral</p>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart
+                  data={avaliacaoDepartamentos}
+                  barCategoryGap="35%"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f3f4f6"
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="departamento"
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    height={55}
+                    tick={<DepartamentoTick />}
+                  />
+
+                  <YAxis
+                    domain={[1, 5]}
+                    ticks={[1, 2, 3, 4, 5]}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: '#9ca3af',
+                      fontSize: 12,
+                    }}
+                  />
+
+                  <Tooltip
+                    formatter={(value) => [
+                      `${Number(value).toFixed(2)}`,
+                      'Satisfação Geral',
+                    ]}
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                      fontSize: 12,
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="satisfacao"
+                    fill="#00B5CC"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+
+            </div>
+
+            {/* Pie chart */}
+            <div
+              className="bg-white rounded-2xl p-5"
+              style={{
+                boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+                border: '1px solid #f3f4f6',
+              }}
+            >
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  Avaliação por Funcionário
+                </h3>
+
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {funcionarioAtual?.funcionario ?? 'Nenhum funcionário'}
+                </p>
+
+                <div className="relative mt-3">
+                  <input
+                    value={funcionarioSearch}
+                    onChange={(e) => {
+                      setFuncionarioSearch(e.target.value)
+                      setFuncionarioSelecionado(null)
+                      setIndiceFuncionario(0)
+                      setMostrarSugestoesFuncionario(true)
+                    }}
+                    onFocus={() => {
+                      if (funcionarioSearch.trim() !== '') {
+                        setMostrarSugestoesFuncionario(true)
+                      }
+                    }}
+                    placeholder="Pesquisar funcionário..."
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+                  />
+
+                  {mostrarSugestoesFuncionario &&
+                    funcionarioSearch.trim() !== '' && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                      {funcionariosFiltrados.length > 0 ? (
+                        funcionariosFiltrados.map((funcionario) => (
+                          <button
+                            key={funcionario.funcionario_id}
+                            type="button"
+                            onClick={() => {
+                              setFuncionarioSelecionado(funcionario)
+                              setFuncionarioSearch(funcionario.funcionario)
+                              setMostrarSugestoesFuncionario(false)
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            {funcionario.funcionario}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-gray-400">
+                          Nenhum funcionário encontrado
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={dadosFuncionario}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={72}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {dadosFuncionario.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={entry.color}
+                      />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value, name) => [
+                      `${Number(value)} avaliações`,
+                      name,
+                    ]}
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+
+              <div className="flex flex-col gap-1.5 mt-2">
+                {dadosFuncionario.map((item) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{
+                          background: item.color,
+                        }}
+                      />
+
+                      <span className="text-gray-600">
+                        {item.name}
+                      </span>
+                    </div>
+
+                    <span className="font-semibold text-gray-900">
+                      {porcentagemFuncionario(item.value)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Satisfação geral por mês */}
+          <div
+            className="bg-white rounded-2xl p-5"
+            style={{
+              boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+              border: '1px solid #f3f4f6',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  Satisfação Geral
+                </h3>
+
+                <p className="text-xs text-gray-400 mt-0.5">
+                  tendência de 8 meses
+                </p>
+              </div>
+
+              <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
+            </div>
+
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={satisfacaoPorMes}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f3f4f6"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="mes"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: '#9ca3af',
+                    fontSize: 12,
+                  }}
+                />
+
+                <YAxis
+                  domain={[0, 100]}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: '#9ca3af',
+                    fontSize: 12,
+                  }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+
+                <Tooltip
+                  formatter={(value) => [
+                    `${Number(value).toFixed(2)}%`,
+                    'Satisfação',
+                  ]}
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: 'none',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    fontSize: 12,
+                  }}
+                />
+
+                <Line
+                  type="monotone"
+                  dataKey="satisfacao"
+                  stroke="#00B5CC"
+                  strokeWidth={2.5}
+                  dot={{
+                    fill: '#00B5CC',
+                    r: 4,
+                  }}
+                  activeDot={{
+                    r: 6,
+                  }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -705,11 +1088,13 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
-                    <th className="px-15 py-3 text-left">Data</th>
-                    <th className="px-15 py-3 text-left">Avaliação</th>
-                    <th className="px-0 py-3 text-left">Departamento</th>
+                    <th className="px-5 py-3 text-left">Data</th>
+                    <th className="px-5 py-3 text-left">Avaliação</th>
+                    <th className="px-5 py-3 text-left">Departamento</th>
+                    <th className="px-5 py-3 text-left">Terminal</th>
+                    <th className="px-5 py-3 text-left">Funcionário</th>
                   </tr>
-                </thead>        
+                </thead>   
                 <tbody>
                   {recentEvals.map((row, i) => (
                     <tr
@@ -720,17 +1105,27 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                         {row.date}
                       </td>
 
-                      <td className="px-15 py-3.5 whitespace-nowrap">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
                         <span
                           className="font-semibold"
-                          style={{ color: ratingColor(row.rating) }}
+                          style={{
+                            color: ratingColor(row.rating),
+                          }}
                         >
                           {row.rating}
                         </span>
                       </td>
 
-                      <td className="px-1 py-3.5 text-gray-600">
-                        {row.terminal}
+                      <td className="px-5 py-3.5 text-gray-600">
+                        {row.departamento}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-gray-600">
+                        {row.terminal || '-'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-gray-600">
+                        {row.funcionario || '-'}
                       </td>
                     </tr>
                   ))}

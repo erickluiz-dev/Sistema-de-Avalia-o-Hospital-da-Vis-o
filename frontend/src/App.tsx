@@ -7,6 +7,7 @@ import SurveyScreen from './screens/SurveyScreen'
 import HomeScreen from './screens/HomeScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import DepartmentScreen from './screens/DepartmentScreen'
+import ManagementScreen from './screens/ManagementScreen'
 
 import type {
   Screen,
@@ -20,6 +21,7 @@ export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [verificandoSessao, setVerificandoSessao] = useState(true)
   const [departamentoId, setDepartamentoId] = useState<number | null>(null)
+  const [terminalId, setTerminalId] = useState<number | null>(null)
   const [mostrarDepartamento, setMostrarDepartamento] = useState(false)
 
   useEffect(() => {
@@ -105,8 +107,9 @@ export default function App() {
 
           {mostrarDepartamento && (
             <DepartmentScreen
-              onStart={(id) => {
-                setDepartamentoId(id)
+              onStart={(departamentoIdSelecionado, terminalIdSelecionado) => {
+                setDepartamentoId(departamentoIdSelecionado)
+                setTerminalId(terminalIdSelecionado)
                 setMostrarDepartamento(false)
                 setScreen('survey')
               }}
@@ -118,13 +121,19 @@ export default function App() {
         </>
       )}
 
-      {screen === 'survey' && departamentoId !== null && (
-        <SurveyScreen
-          departamentoId={departamentoId}
-          onBack={() => setScreen('home')}
-        />
-      )}
-
+      {screen === 'survey' &&
+        departamentoId !== null &&
+        terminalId !== null && (
+          <SurveyScreen
+            departamentoId={departamentoId}
+            terminalId={terminalId}
+            onBack={() => {
+              setDepartamentoId(null)
+              setTerminalId(null)
+              setScreen('home')
+            }}
+          />
+        )}
       {screen === 'dashboard' && (
         <DashboardScreen
           onBack={() => setScreen('home')}
@@ -132,6 +141,15 @@ export default function App() {
           usuario={usuario}
         />
       )}
+
+      {screen === 'management' && (
+        <ManagementScreen
+          onBack={() => setScreen('home')}
+          onLogout={handleLogout}
+          usuario={usuario}
+        />
+      )}
     </>
+    
   )
 }

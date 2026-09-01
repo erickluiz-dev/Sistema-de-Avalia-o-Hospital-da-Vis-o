@@ -8,11 +8,16 @@ type Avaliacoes struct {
 	Data           time.Time `json:"data"`
 	DepartamentoID int64     `json:"departamento_id"`
 	Departamento   string    `json:"departamento"`
+	TerminalID     int64     `json:"terminal_id"`
+	Terminal       string    `json:"terminal"`
+	FuncionarioID  int64     `json:"funcionario_id"`
+	Funcionario    string    `json:"funcionario"`
 }
 
 type NovaAvaliacaoRequest struct {
 	Avaliacao      string `json:"avaliacao"`
 	DepartamentoID int64  `json:"departamento_id"`
+	TerminalID     int64  `json:"terminal_id"`
 }
 
 type AvaliacoesPaginadas struct {
@@ -33,6 +38,17 @@ type AvaliacaoPorDia struct {
 	Quantidade int64  `json:"quantidade"`
 }
 
+type SatisfacaoPorMes struct {
+	Mes        string  `json:"mes"`
+	Satisfacao float64 `json:"satisfacao"`
+}
+
+type AvaliacaoPorDepartamento struct {
+	DepartamentoID int64   `json:"departamento_id"`
+	Departamento   string  `json:"departamento"`
+	Pontuacao     float64 `json:"satisfacao"`
+}
+
 type Estatisticas struct {
 	TotalAvaliacoes          int64   `json:"total_avaliacoes"`
 	Excelente                int64   `json:"excelente"`
@@ -50,10 +66,25 @@ type Estatisticas struct {
 	PontuacaoSemanaAtual    float64 `json:"pontuacao_semana_atual"`
 	PontuacaoSemanaAnterior float64 `json:"pontuacao_semana_anterior"`
 
+	SatisfacaoGeral float64 `json:"satisfacao_geral"`
+
 	SatisfacaoSemanaAtual    float64 `json:"satisfacao_semana_atual"`
 	SatisfacaoSemanaAnterior float64 `json:"satisfacao_semana_anterior"`
 
 	AvaliacoesUltimos7Dias []AvaliacaoPorDia   `json:"avaliacoes_ultimos_7_dias"`
 	HistoricoPontuacao     []HistoricoPontuacao `json:"historico_pontuacao"`
+	SatisfacaoPorMes []SatisfacaoPorMes `json:"satisfacao_por_mes"`
+	AvaliacaoPorDepartamento []AvaliacaoPorDepartamento `json:"avaliacao_por_departamento"`
+	AvaliacaoPorFuncionario []AvaliacaoPorFuncionario `json:"avaliacao_por_funcionario"`
 }
 
+type AvaliacaoPorFuncionario struct {
+	FuncionarioID int64 `json:"funcionario_id"`
+	Funcionario   string `json:"funcionario"`
+
+	Excelente int64 `json:"excelente"`
+	Bom       int64 `json:"bom"`
+	Razoavel  int64 `json:"razoavel"`
+	Ruim      int64 `json:"ruim"`
+	Pessimo   int64 `json:"pessimo"`
+}

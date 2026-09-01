@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend/models"
+	"backend/middleware"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -106,6 +107,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println("Erro ao criar sessão:", err)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	if err := middleware.DefinirCSRFToken(w); err != nil {
+		log.Println("Erro ao criar token CSRF:", err)
 
 		http.Error(
 			w,
