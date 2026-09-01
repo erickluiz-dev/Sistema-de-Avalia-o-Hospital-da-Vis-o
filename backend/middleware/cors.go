@@ -11,7 +11,7 @@ func CORS(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 
 		allowedOrigins := strings.Split(
-			os.Getenv("ALLOWED_ORIGINS"),
+			os.Getenv("	FrontendURL"),
 			",",
 		)
 

@@ -29,6 +29,6 @@ func Load() Config {
 	return Config{
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		Port:           port,
-		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
+		FrontendURL: os.Getenv("FrontendURL"),
 	}
 }
