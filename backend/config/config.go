@@ -10,7 +10,7 @@ import (
 type Config struct {
 	DatabaseURL    string
 	Port           string
-	AllowedOrigins string
+	FrontendURL string
 }
 
 func Load() Config {
