@@ -43,7 +43,7 @@ func (h *GerenciamentoHandler) ListarUsuarios(
 	rows, err := h.DB.Query(
 		r.Context(),
 		`
-		SELECT id, nome, login
+		SELECT id, nome, login, administrador 
 		FROM usuarios
 		ORDER BY nome
 		`,
@@ -70,6 +70,7 @@ func (h *GerenciamentoHandler) ListarUsuarios(
 			&usuario.ID,
 			&usuario.Nome,
 			&usuario.Login,
+			&usuario.Administrador,
 		); err != nil {
 			log.Println("Erro ao ler usuário:", err)
 			http.Error(
@@ -144,18 +145,21 @@ func (h *GerenciamentoHandler) CriarUsuario(
 		INSERT INTO usuarios (
 			nome,
 			login,
-			senha_hash
+			senha_hash,
+			administrador
 		)
-		VALUES ($1, $2, $3)
-		RETURNING id, nome, login
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, nome, login, administrador
 		`,
 		req.Nome,
 		req.Login,
 		string(hash),
+		req.Administrador,
 	).Scan(
 		&usuario.ID,
 		&usuario.Nome,
 		&usuario.Login,
+		&usuario.Administrador,
 	)
 
 	if err != nil {

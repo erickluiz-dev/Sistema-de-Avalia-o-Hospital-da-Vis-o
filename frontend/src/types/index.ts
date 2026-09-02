@@ -27,6 +27,7 @@ export type Usuario = {
   id: number
   nome: string
   login: string
+  administrador: boolean
 }
 
 export type Departamento = {

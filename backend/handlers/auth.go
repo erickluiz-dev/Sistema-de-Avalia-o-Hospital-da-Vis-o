@@ -52,11 +52,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var nome string
 	var login string
 	var senhaHash string
+	var administrador bool
 
 	err = h.DB.QueryRow(
 		r.Context(),
 		`
-		SELECT id, nome, login, senha_hash
+		SELECT id, nome, login, senha_hash, administrador
 		FROM usuarios
 		WHERE login = $1
 		`,
@@ -66,6 +67,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		&nome,
 		&login,
 		&senhaHash,
+		&administrador,
 	)
 
 	if err != nil {
@@ -143,6 +145,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Id:    id,
 		Nome:  nome,
 		Login: login,
+		Administrador: administrador,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -176,18 +179,23 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	err = h.DB.QueryRow(
 		r.Context(),
 		`
-		SELECT u.id, u.nome, u.login
+		SELECT
+			u.id,
+			u.nome,
+			u.login,
+			u.administrador
 		FROM usuarios u
 		INNER JOIN sessoes s
 			ON s.usuario_id = u.id
 		WHERE s.id = $1
-		  AND s.expira_em > NOW()
+		AND s.expira_em > NOW()
 		`,
 		cookie.Value,
 	).Scan(
 		&usuario.Id,
 		&usuario.Nome,
 		&usuario.Login,
+		&usuario.Administrador,
 	)
 
 	if err != nil {

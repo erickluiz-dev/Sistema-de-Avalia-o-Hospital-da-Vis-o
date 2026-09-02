@@ -1090,9 +1090,9 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                   <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
                     <th className="px-5 py-3 text-left">Data</th>
                     <th className="px-5 py-3 text-left">Avaliação</th>
+                    <th className="px-5 py-3 text-left">Funcionário</th>
                     <th className="px-5 py-3 text-left">Departamento</th>
                     <th className="px-5 py-3 text-left">Terminal</th>
-                    <th className="px-5 py-3 text-left">Funcionário</th>
                   </tr>
                 </thead>   
                 <tbody>
@@ -1117,6 +1117,10 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                       </td>
 
                       <td className="px-5 py-3.5 text-gray-600">
+                        {row.funcionario || '-'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-gray-600">
                         {row.departamento}
                       </td>
 
@@ -1124,9 +1128,6 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
                         {row.terminal || '-'}
                       </td>
 
-                      <td className="px-5 py-3.5 text-gray-600">
-                        {row.funcionario || '-'}
-                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -66,44 +66,56 @@ export default function HomeScreen({
       accent: '#E0F2FE',
     },
 
-    {
-    icon: (
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="9"
-          cy="8"
-          r="3"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <path
-          d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M16 11c2.761 0 5 2.239 5 5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M16 5.5a2.5 2.5 0 1 1 0 5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-      </svg>
-    ),
-    title: 'Gerenciamento',
-    desc: 'Gerencie usuários, funcionários, departamentos e terminais.',
-    btn: 'Acessar Gerenciamento',
-    color: '#00B5CC',
-    screen: 'management' as Screen,
-    gradient: '#00B5CC',
-    shadow: '#00b4cc59',
-    accent: '#E0F2FE',
-  },
+     ...(usuario?.administrador
+    ? [
+        {
+          icon: (
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                cx="9"
+                cy="8"
+                r="3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+
+              <path
+                d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M16 11c2.761 0 5 2.239 5 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M16 5.5a2.5 2.5 0 1 1 0 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+          ),
+          title: 'Gerenciamento',
+          desc: 'Gerencie usuários, funcionários, departamentos e terminais.',
+          btn: 'Acessar Gerenciamento',
+          color: '#00B5CC',
+          screen: 'management' as Screen,
+          gradient: '#00B5CC',
+          shadow: '#00b4cc59',
+          accent: '#E0F2FE',
+        },
+      ]
+    : []),
 ]
 
   return (
@@ -120,7 +132,7 @@ export default function HomeScreen({
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Bem-vindo, Administrador
+            Bem-vindo, {usuario?.nome ?? 'Usuário'}
           </h1>
 
           <p className="text-gray-500 mt-2 text-sm">
@@ -128,11 +140,11 @@ export default function HomeScreen({
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-4xl">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-6 w-full">
           {cards.map((card) => (
             <div
               key={card.title}
-              className="flex-1 bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
+              className="w-full sm:w-[360px] bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
               style={{
                 boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
                 border: '1px solid #f3f4f6',

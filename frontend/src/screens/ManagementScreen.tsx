@@ -10,6 +10,7 @@
     id: number
     nome: string
     login: string
+    administrador: boolean
     }
 
     type Funcionario = {
@@ -144,6 +145,7 @@
     const [nome, setNome] = useState('')
     const [login, setLogin] = useState('')
     const [senha, setSenha] = useState('')
+    const [administrador, setAdministrador] = useState(false)
 
     const [departamentoFormulario, setDepartamentoFormulario] =
     useState('')
@@ -157,6 +159,7 @@
         setNome('')
         setLogin('')
         setSenha('')
+        setAdministrador(false)
         setDepartamentoFormulario('')
         setTerminalFormulario('')
         setMostrarModal(true)
@@ -190,6 +193,7 @@
                 nome: nome.trim(),
                 login: login.trim(),
                 senha,
+                administrador,
                 }
 
                 break
@@ -843,12 +847,9 @@
                     <table className="w-full text-sm">
                         <thead>
                         <tr className="bg-gray-50 text-xs text-gray-400 uppercase">
-                            <th className="px-4 py-3 text-left">
-                            Nome
-                            </th>
-                            <th className="px-4 py-3 text-left">
-                            Login
-                            </th>
+                            <th className="px-4 py-3 text-left">NOME</th>
+                            <th className="px-4 py-3 text-left">LOGIN</th>
+                            <th className="px-4 py-3 text-center">ADMINISTRADOR</th>
                         </tr>
                         </thead>
 
@@ -865,6 +866,18 @@
 
                                 <td className="px-4 py-4 text-gray-600">
                                 {usuarioItem.login}
+                                </td>
+
+                                <td className="px-4 py-4 text-center">
+                                    {usuarioItem.administrador ? (
+                                    <span className="inline-flex items-center rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                                        Sim
+                                    </span>
+                                    ) : (
+                                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                                        Não
+                                    </span>
+                                    )}
                                 </td>
                             </tr>
                             ),
@@ -960,6 +973,23 @@
                     placeholder="Senha"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
                     />
+                </div>
+
+                <div className="flex items-center gap-3">
+                <input
+                    id="administrador"
+                    type="checkbox"
+                    checked={administrador}
+                    onChange={(e) => setAdministrador(e.target.checked)}
+                    className="w-4 h-4 accent-[#00B5CC] cursor-pointer"
+                />
+
+                <label
+                    htmlFor="administrador"
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                >
+                    Usuário administrador
+                </label>
                 </div>
                 </div>
             )}

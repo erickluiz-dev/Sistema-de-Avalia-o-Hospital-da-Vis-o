@@ -4,12 +4,14 @@ type UsuarioGerenciamento struct {
 	ID    int64  `json:"id"`
 	Nome  string `json:"nome"`
 	Login string `json:"login"`
+	Administrador bool   `json:"administrador"`
 }
 
 type CriarUsuarioRequest struct {
 	Nome  string `json:"nome"`
 	Login string `json:"login"`
 	Senha string `json:"senha"`
+	Administrador bool   `json:"administrador"`
 }
 
 type DepartamentoGerenciamento struct {
