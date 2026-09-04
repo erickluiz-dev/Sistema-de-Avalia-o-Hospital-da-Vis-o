@@ -69,15 +69,19 @@ func configurarRotas(
 		"/admin/usuarios",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.Usuarios),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.Usuarios),
+			),
 		),
 	)
 
 	mux.Handle(
-  		"/admin/funcionarios",
+		"/admin/funcionarios",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.Funcionarios),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.Funcionarios),
+			),
 		),
 	)
 
@@ -85,7 +89,9 @@ func configurarRotas(
 		"/admin/funcionarios/",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.FuncionarioPorID),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.FuncionarioPorID),
+			),
 		),
 	)
 
@@ -93,7 +99,9 @@ func configurarRotas(
 		"/admin/terminais",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.Terminais),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.Terminais),
+			),
 		),
 	)
 
@@ -101,7 +109,9 @@ func configurarRotas(
 		"/admin/terminais/",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.AtualizarTerminal),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.AtualizarTerminal),
+			),
 		),
 	)
 
@@ -109,7 +119,9 @@ func configurarRotas(
 		"/admin/departamentos",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.Departamentos),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.Departamentos),
+			),
 		),
 	)
 
@@ -117,7 +129,9 @@ func configurarRotas(
 		"/admin/departamentos/",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.AtualizarDepartamento),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.AtualizarDepartamento),
+			),
 		),
 	)
 
@@ -125,14 +139,17 @@ func configurarRotas(
 		"/admin/usuarios/",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
-			http.HandlerFunc(gerenciamentoHandler.AtualizarUsuario),
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.AtualizarUsuario),
+			),
 		),
 	)
 
 	return middleware.SecurityHeaders(
 		middleware.CORS(
-			rateLimiter.Middleware(mux),
+			rateLimiter.Middleware(
+				middleware.ExigirCSRF(mux),
+			),
 		),
 	)
 }
-

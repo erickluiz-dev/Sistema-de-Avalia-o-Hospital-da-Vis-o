@@ -260,29 +260,38 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *AuthHandler) Authenticate(r *http.Request) (int64, error) {
-	cookie, err := r.Cookie("session_id")
+func (h *AuthHandler) Authenticate(
+	r *http.Request,
+) (middleware.UsuarioAutenticado, error) {
 
+	cookie, err := r.Cookie("session_id")
 	if err != nil {
-		return 0, err
+		return middleware.UsuarioAutenticado{}, err
 	}
 
-	var usuarioID int64
+	var usuario middleware.UsuarioAutenticado
 
 	err = h.DB.QueryRow(
 		r.Context(),
 		`
-		SELECT usuario_id
-		FROM sessoes
-		WHERE id = $1
-		  AND expira_em > NOW()
+		SELECT
+			u.id,
+			u.administrador
+		FROM sessoes s
+		INNER JOIN usuarios u
+			ON u.id = s.usuario_id
+		WHERE s.id = $1
+		  AND s.expira_em > NOW()
 		`,
 		cookie.Value,
-	).Scan(&usuarioID)
+	).Scan(
+		&usuario.ID,
+		&usuario.Administrador,
+	)
 
 	if err != nil {
-		return 0, err
+		return middleware.UsuarioAutenticado{}, err
 	}
 
-	return usuarioID, nil
+	return usuario, nil
 }

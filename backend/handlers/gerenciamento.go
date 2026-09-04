@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"backend/models"
+	"backend/middleware"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -1145,9 +1146,10 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 	}
 
 	var req struct {
-		Nome  string `json:"nome"`
-		Login string `json:"login"`
-		Senha string `json:"senha"`
+		Nome       string `json:"nome"`
+		Login      string `json:"login"`
+		Senha      string `json:"senha"`
+		SenhaAtual string `json:"senha_atual"`
 	}
 
 	if err := decodeJSON(w, r, &req); err != nil {
@@ -1182,7 +1184,66 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 		return
 	}
 
+	// Atualização de senha exige confirmação da senha do administrador autenticado.
 	if req.Senha != "" {
+		usuario, ok := middleware.UsuarioDoContexto(r)
+
+		if !ok {
+			http.Error(
+				w,
+				"Não autenticado",
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		if req.SenhaAtual == "" {
+			http.Error(
+				w,
+				"Senha atual é obrigatória para alterar a senha",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		var senhaHashAtual string
+
+		err := h.DB.QueryRow(
+			r.Context(),
+			`
+			SELECT senha_hash
+			FROM usuarios
+			WHERE id = $1
+			`,
+			usuario.ID,
+		).Scan(&senhaHashAtual)
+
+		if err != nil {
+			log.Println(
+				"Erro ao buscar senha do administrador:",
+				err,
+			)
+
+			http.Error(
+				w,
+				"Erro interno do servidor",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword(
+			[]byte(senhaHashAtual),
+			[]byte(req.SenhaAtual),
+		); err != nil {
+			http.Error(
+				w,
+				"Senha atual inválida",
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
 		hash, err := bcrypt.GenerateFromPassword(
 			[]byte(req.Senha),
 			bcrypt.DefaultCost,
@@ -1257,7 +1318,11 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 	err := h.DB.QueryRow(
 		r.Context(),
 		`
-		SELECT id, nome, login
+		SELECT
+			id,
+			nome,
+			login,
+			administrador
 		FROM usuarios
 		WHERE id = $1
 		`,
@@ -1266,6 +1331,7 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 		&usuario.ID,
 		&usuario.Nome,
 		&usuario.Login,
+		&usuario.Administrador,
 	)
 
 	if err != nil {
