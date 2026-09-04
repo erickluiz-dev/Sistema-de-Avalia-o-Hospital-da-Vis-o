@@ -48,6 +48,11 @@ func ExigirCSRF(next http.Handler) http.Handler {
 			return
 		}
 
+		if r.URL.Path == "/login" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		cookie, err := r.Cookie(csrfCookieName)
 
 		if err != nil || cookie.Value == "" {
