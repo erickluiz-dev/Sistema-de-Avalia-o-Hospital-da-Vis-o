@@ -1,23 +1,23 @@
 package models
 
 type UsuarioGerenciamento struct {
-	ID    int64  `json:"id"`
-	Nome  string `json:"nome"`
-	Login string `json:"login"`
+	ID            int64  `json:"id"`
+	Nome          string `json:"nome"`
+	Login         string `json:"login"`
 	Administrador bool   `json:"administrador"`
 }
 
 type CriarUsuarioRequest struct {
-	Nome  string `json:"nome"`
-	Login string `json:"login"`
-	Senha string `json:"senha"`
+	Nome          string `json:"nome"`
+	Login         string `json:"login"`
+	Senha         string `json:"senha"`
 	Administrador bool   `json:"administrador"`
 }
 
 type DepartamentoGerenciamento struct {
-	ID     int64  `json:"id"`
-	Nome   string `json:"nome"`
-	Ativo  bool   `json:"ativo"`
+	ID    int64  `json:"id"`
+	Nome  string `json:"nome"`
+	Ativo bool   `json:"ativo"`
 }
 
 type CriarDepartamentoRequest struct {
@@ -48,7 +48,7 @@ type FuncionarioGerenciamento struct {
 
 type CriarFuncionarioRequest struct {
 	Nome       string `json:"nome"`
-	TerminalID int64 `json:"terminal_id"`
+	TerminalID int64  `json:"terminal_id"`
 }
 
 type AtualizarVinculoTerminalRequest struct {

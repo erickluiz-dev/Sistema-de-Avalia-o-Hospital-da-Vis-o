@@ -108,4 +108,3 @@ func (h *TerminalHandler) Listar(
 
 	json.NewEncoder(w).Encode(terminais)
 }
-

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"net/http"
 	"backend/handlers"
 	"backend/middleware"
+	"net/http"
 )
 
 func configurarRotas(

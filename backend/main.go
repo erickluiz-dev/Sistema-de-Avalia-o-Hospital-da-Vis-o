@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"backend/jobs"
 	"backend/config"
 	"backend/database"
 	"backend/handlers"
+	"backend/jobs"
 	"backend/middleware"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,7 +38,7 @@ func main() {
 		log.Fatal("Erro ao conectar ao PostgreSQL:", err)
 	}
 	imprimirSeparador()
-	
+
 	fmt.Println("Banco de dados conectado!")
 
 	jobs.IniciarLimpezaSessoes(

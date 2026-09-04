@@ -2,17 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 	"strings"
-	"fmt"
+	"time"
 
 	"backend/models"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AvaliacaoHandler struct {
@@ -349,7 +349,6 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 
 	defer rows.Close()
 
-	
 	avaliacoes := []models.Avaliacoes{}
 
 	for rows.Next() {
@@ -540,7 +539,7 @@ func (h *AvaliacaoHandler) Estatisticas(
 		HistoricoPontuacao:       []models.HistoricoPontuacao{},
 		SatisfacaoPorMes:         []models.SatisfacaoPorMes{},
 		AvaliacaoPorDepartamento: []models.AvaliacaoPorDepartamento{},
-		AvaliacaoPorFuncionario:    []models.AvaliacaoPorFuncionario{},
+		AvaliacaoPorFuncionario:  []models.AvaliacaoPorFuncionario{},
 	}
 
 	err := h.DB.QueryRow(
@@ -661,8 +660,6 @@ func (h *AvaliacaoHandler) Estatisticas(
 			time.Friday:    "Sexta",
 			time.Saturday:  "Sábado",
 		}[data.Weekday()]
-
-
 
 		stats.AvaliacoesUltimos7Dias = append(
 			stats.AvaliacoesUltimos7Dias,
@@ -1039,7 +1036,7 @@ func (h *AvaliacaoHandler) Estatisticas(
 			models.AvaliacaoPorDepartamento{
 				DepartamentoID: departamentoID,
 				Departamento:   departamento,
-				Pontuacao: pontuacao,
+				Pontuacao:      pontuacao,
 			},
 		)
 	}

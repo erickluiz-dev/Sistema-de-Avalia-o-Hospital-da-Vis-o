@@ -6,8 +6,8 @@ type LoginRequest struct {
 }
 
 type UsuarioResposta struct {
-	Id    int64  `json:"id"`
-	Nome  string `json:"nome"`
-	Login string `json:"login"`
-	Administrador bool `json:"administrador"`
+	Id            int64  `json:"id"`
+	Nome          string `json:"nome"`
+	Login         string `json:"login"`
+	Administrador bool   `json:"administrador"`
 }

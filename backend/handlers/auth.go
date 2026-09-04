@@ -6,16 +6,18 @@ import (
 	"net/http"
 	"time"
 
-	"backend/models"
 	"backend/middleware"
+	"backend/models"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+
+	"crypto/sha256"
 )
 
 type AuthHandler struct {
-	DB           *pgxpool.Pool
+	DB *pgxpool.Pool
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +95,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := uuid.New()
+
+	sessionToken := uuid.New().String()
+	sessionHash := hashSessionToken(sessionToken)
 	expiraEm := time.Now().Add(8 * time.Hour)
 
 	_, err = h.DB.Exec(
@@ -102,7 +106,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO sessoes (id, usuario_id, expira_em)
 		VALUES ($1, $2, $3)
 		`,
-		sessionID,
+		sessionHash,
 		id,
 		expiraEm,
 	)
@@ -133,7 +137,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
-		Value:    sessionID.String(),
+		Value:    sessionToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
@@ -142,9 +146,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	resposta := models.UsuarioResposta{
-		Id:    id,
-		Nome:  nome,
-		Login: login,
+		Id:            id,
+		Nome:          nome,
+		Login:         login,
 		Administrador: administrador,
 	}
 
@@ -174,6 +178,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionHash := hashSessionToken(cookie.Value)
+
 	var usuario models.UsuarioResposta
 
 	err = h.DB.QueryRow(
@@ -190,7 +196,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		WHERE s.id = $1
 		AND s.expira_em > NOW()
 		`,
-		cookie.Value,
+		sessionHash,
 	).Scan(
 		&usuario.Id,
 		&usuario.Nome,
@@ -225,13 +231,15 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
 
 	if err == nil {
+		sessionHash := hashSessionToken(cookie.Value)
+
 		_, err = h.DB.Exec(
 			r.Context(),
 			`
 			DELETE FROM sessoes
 			WHERE id = $1
 			`,
-			cookie.Value,
+			sessionHash,
 		)
 
 		if err != nil {
@@ -269,6 +277,8 @@ func (h *AuthHandler) Authenticate(
 		return middleware.UsuarioAutenticado{}, err
 	}
 
+	sessionHash := hashSessionToken(cookie.Value)
+
 	var usuario middleware.UsuarioAutenticado
 
 	err = h.DB.QueryRow(
@@ -283,7 +293,7 @@ func (h *AuthHandler) Authenticate(
 		WHERE s.id = $1
 		  AND s.expira_em > NOW()
 		`,
-		cookie.Value,
+		sessionHash,
 	).Scan(
 		&usuario.ID,
 		&usuario.Administrador,
@@ -294,4 +304,15 @@ func (h *AuthHandler) Authenticate(
 	}
 
 	return usuario, nil
+}
+
+func hashSessionToken(token string) uuid.UUID {
+	hash := sha256.Sum256([]byte(token))
+
+	sessionID, err := uuid.FromBytes(hash[:16])
+	if err != nil {
+		panic(err)
+	}
+
+	return sessionID
 }

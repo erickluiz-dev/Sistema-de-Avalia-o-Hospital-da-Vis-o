@@ -1,13 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-	"bytes"
 )
 
 type LoginAttempt struct {
@@ -288,4 +288,3 @@ func NormalizarLogin(login string) string {
 		strings.TrimSpace(login),
 	)
 }
-

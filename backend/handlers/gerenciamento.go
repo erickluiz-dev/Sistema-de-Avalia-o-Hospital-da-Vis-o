@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"fmt"
 
-	"backend/models"
 	"backend/middleware"
+	"backend/models"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -1275,6 +1275,27 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 			string(hash),
 			id,
 		)
+
+		_, err = h.DB.Exec(
+			r.Context(),
+			`
+			DELETE FROM sessoes
+			WHERE usuario_id = $1
+			`,
+			id,
+		)
+
+		if err != nil {
+			log.Println("Erro ao revogar sessões após alteração de senha:", err)
+
+			http.Error(
+				w,
+				"Não foi possível concluir a alteração da senha",
+				http.StatusInternalServerError,
+			)
+
+			return
+		}
 
 		if err != nil {
 			log.Println("Erro ao atualizar usuário:", err)
