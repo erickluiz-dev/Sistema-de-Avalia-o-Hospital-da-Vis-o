@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 	"strings"
-	f "fmt"
+	"fmt"
 
 	"backend/models"
 
@@ -802,7 +802,7 @@ func (h *AvaliacaoHandler) Estatisticas(
 		stats.HistoricoPontuacao = append(
 			stats.HistoricoPontuacao,
 			models.HistoricoPontuacao{
-				Semana: f.Sprintf(
+				Semana: fmt.Sprintf(
 					"Semana %d",
 					indiceSemana,
 				),
@@ -946,7 +946,7 @@ func (h *AvaliacaoHandler) Estatisticas(
 		stats.SatisfacaoPorMes = append(
 			stats.SatisfacaoPorMes,
 			models.SatisfacaoPorMes{
-				Mes: f.Sprintf(
+				Mes: fmt.Sprintf(
 					"%s/%02d",
 					nomesMeses[inicio.Month()],
 					inicio.Year()%100,
