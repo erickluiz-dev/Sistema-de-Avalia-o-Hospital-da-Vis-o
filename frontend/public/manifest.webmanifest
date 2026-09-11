@@ -1,0 +1,25 @@
+{
+  "short_name": "Avaliação Hospital da Visão",
+  "name": "Sistema de Avaliação do Atendimentos do Funcionários do Hospital da Visão",
+  "icons": [
+    {
+      "src": "icon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#00B5CC",
+  "background_color": "#00B5CC"
+}
