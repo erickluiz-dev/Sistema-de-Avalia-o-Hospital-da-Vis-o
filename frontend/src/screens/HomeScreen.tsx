@@ -19,23 +19,6 @@ export default function HomeScreen({
     {
       icon: (
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" opacity=".6" />
-          <rect x="10" y="7" width="4" height="14" rx="1" fill="currentColor" opacity=".8" />
-          <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" />
-        </svg>
-      ),
-      title: 'Painel Administrativo',
-      desc: 'Visualize estatísticas, relatórios e indicadores de satisfação.',
-      btn: 'Acessar Painel',
-      color: '#00B5CC',
-      screen: 'dashboard' as Screen,
-      gradient: '#00B5CC',
-      shadow: '#00b4cc59',
-      accent: '#EFF6FF',
-    },
-    {
-      icon: (
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
           <circle
             cx="12"
             cy="12"
@@ -68,6 +51,23 @@ export default function HomeScreen({
 
      ...(usuario?.administrador
     ? [
+          {
+          icon: (
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" opacity=".6" />
+              <rect x="10" y="7" width="4" height="14" rx="1" fill="currentColor" opacity=".8" />
+              <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" />
+            </svg>
+          ),
+          title: 'Painel Administrativo',
+          desc: 'Visualize estatísticas, relatórios e indicadores de satisfação.',
+          btn: 'Acessar Painel',
+          color: '#00B5CC',
+          screen: 'dashboard' as Screen,
+          gradient: '#00B5CC',
+          shadow: '#00b4cc59',
+          accent: '#EFF6FF',
+        },
         {
           icon: (
             <svg

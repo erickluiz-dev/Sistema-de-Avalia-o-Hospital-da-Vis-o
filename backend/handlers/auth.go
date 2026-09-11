@@ -8,6 +8,12 @@ import (
 
 	"backend/middleware"
 	"backend/models"
+	"backend/services"
+
+	"crypto/rand"
+	"encoding/hex"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,7 +23,9 @@ import (
 )
 
 type AuthHandler struct {
-	DB *pgxpool.Pool
+	DB          *pgxpool.Pool
+	EmailService *services.EmailService
+	FrontendURL string
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +273,9 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	middleware.LimparCSRFToken(w)
+
+	w.WriteHeader(http.StatusNoContent)	
 }
 
 func (h *AuthHandler) Authenticate(
@@ -315,4 +325,509 @@ func hashSessionToken(token string) uuid.UUID {
 	}
 
 	return sessionID
+}
+
+func (h *AuthHandler) SolicitarRecuperacaoSenha(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodPost {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(
+		w,
+		r.Body,
+		10<<10,
+	)
+
+	var req models.RecuperacaoSenhaRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(
+			w,
+			"Dados inválidos",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	login := strings.TrimSpace(req.Login)
+
+	if login == "" {
+		http.Error(
+			w,
+			"Login é obrigatório",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	var usuarioID int64
+
+	err := h.DB.QueryRow(
+		r.Context(),
+		`
+		SELECT id
+		FROM usuarios
+		WHERE login = $1
+		`,
+		login,
+	).Scan(&usuarioID)
+
+	// Resposta propositalmente igual para usuário existente
+	// ou inexistente.
+	mensagem := map[string]string{
+		"mensagem": "E-mail enviado",
+	}
+
+	if err != nil {
+		w.Header().Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		json.NewEncoder(w).Encode(mensagem)
+		return
+	}
+
+	tokenBytes := make([]byte, 32)
+
+	if _, err := rand.Read(tokenBytes); err != nil {
+		log.Println(
+			"Erro ao gerar token de recuperação:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	token := hex.EncodeToString(tokenBytes)
+
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	tokenID := uuid.New()
+
+	expiraEm := time.Now().UTC().Add(30 * time.Minute)
+
+	tx, err := h.DB.Begin(r.Context())
+
+	if err != nil {
+		log.Println(
+			"Erro ao iniciar transação:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	defer tx.Rollback(r.Context())
+
+	_, err = tx.Exec(
+		r.Context(),
+		`
+		DELETE FROM password_reset_tokens
+		WHERE usuario_id = $1
+		`,
+		usuarioID,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao remover tokens anteriores:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	_, err = tx.Exec(
+		r.Context(),
+		`
+		INSERT INTO password_reset_tokens (
+			id,
+			usuario_id,
+			token_hash,
+			expira_em
+		)
+		VALUES ($1, $2, $3, $4)
+		`,
+		tokenID,
+		usuarioID,
+		tokenHash,
+		expiraEm,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao salvar token de recuperação:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		log.Println(
+			"Erro ao confirmar token:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	frontendURL := strings.TrimRight(h.FrontendURL, "/")
+
+	link := frontendURL +
+		"/redefinir-senha?token=" +
+		url.QueryEscape(token)
+
+	if h.EmailService == nil {
+		log.Println(
+			"Serviço de e-mail não configurado",
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	if err := h.EmailService.EnviarRecuperacaoSenha(
+		login,
+		link,
+	); err != nil {
+		log.Println(
+			"Erro ao enviar e-mail de recuperação:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	json.NewEncoder(w).Encode(mensagem)
+}
+
+func (h *AuthHandler) RedefinirSenha(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodPost {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(
+		w,
+		r.Body,
+		10<<10,
+	)
+
+	var req models.RedefinicaoSenhaRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(
+			w,
+			"Dados inválidos",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	req.Token = strings.TrimSpace(req.Token)
+
+	if req.Token == "" || req.Senha == "" {
+		http.Error(
+			w,
+			"Token e nova senha são obrigatórios",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	if len(req.Senha) < 8 {
+		http.Error(
+			w,
+			"A nova senha deve possuir pelo menos 8 caracteres",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	hash := sha256.Sum256([]byte(req.Token))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	var tokenID uuid.UUID
+	var usuarioID int64
+
+	var (
+		expiraEm time.Time
+		usadoEm  *time.Time
+	)
+
+	err := h.DB.QueryRow(
+		r.Context(),
+		`
+		SELECT id, usuario_id, expira_em, usado_em
+		FROM password_reset_tokens
+		WHERE token_hash = $1
+		`,
+		tokenHash,
+	).Scan(
+		&tokenID,
+		&usuarioID,
+		&expiraEm,
+		&usadoEm,
+	)
+
+	if err != nil {
+		log.Println("TOKEN NÃO ENCONTRADO:", err)
+
+		http.Error(
+			w,
+			"Token inválido ou expirado",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	if !expiraEm.After(time.Now()) {
+		log.Println("TOKEN EXPIRADO")
+
+		http.Error(
+			w,
+			"Token inválido ou expirado",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	if usadoEm != nil {
+		log.Println("TOKEN JÁ UTILIZADO")
+
+		http.Error(
+			w,
+			"Token inválido ou expirado",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	if err != nil {
+		http.Error(
+			w,
+			"Token inválido ou expirado",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	senhaHash, err := bcrypt.GenerateFromPassword(
+		[]byte(req.Senha),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao gerar nova senha:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	tx, err := h.DB.Begin(r.Context())
+
+	if err != nil {
+		log.Println(
+			"Erro ao iniciar transação:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	defer tx.Rollback(r.Context())
+
+	result, err := tx.Exec(
+		r.Context(),
+		`
+		UPDATE usuarios
+		SET senha_hash = $1
+		WHERE id = $2
+		`,
+		string(senhaHash),
+		usuarioID,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao atualizar senha:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Não foi possível redefinir a senha",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	if result.RowsAffected() != 1 {
+		http.Error(
+			w,
+			"Usuário não encontrado",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	// Invalida todas as sessões existentes.
+	_, err = tx.Exec(
+		r.Context(),
+		`
+		DELETE FROM sessoes
+		WHERE usuario_id = $1
+		`,
+		usuarioID,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao invalidar sessões:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Não foi possível concluir a redefinição",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	// Token de recuperação torna-se inutilizável.
+	_, err = tx.Exec(
+		r.Context(),
+		`
+		UPDATE password_reset_tokens
+		SET usado_em = NOW()
+		WHERE id = $1
+		`,
+		tokenID,
+	)
+
+	if err != nil {
+		log.Println(
+			"Erro ao invalidar token:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Não foi possível concluir a redefinição",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		log.Println(
+			"Erro ao confirmar redefinição:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro interno do servidor",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	json.NewEncoder(w).Encode(
+		map[string]string{
+			"mensagem": "Senha redefinida com sucesso",
+		},
+	)
 }

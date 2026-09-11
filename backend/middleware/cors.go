@@ -2,22 +2,18 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 	"strings"
 )
 
-func CORS(next http.Handler) http.Handler {
+func CORS(allowedOrigins string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		allowedOrigins := strings.Split(
-			os.Getenv("ALLOWED_ORIGINS"),
-			",",
-		)
+		origins := strings.Split(allowedOrigins, ",")
 
 		permitida := false
 
-		for _, allowed := range allowedOrigins {
+		for _, allowed := range origins {
 			if strings.TrimSpace(allowed) == origin {
 				permitida = true
 				break

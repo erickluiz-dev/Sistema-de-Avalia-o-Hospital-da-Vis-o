@@ -6,9 +6,12 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"net"
+	"strconv"
 
 	"backend/middleware"
 	"backend/models"
+	"backend/services"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -18,6 +21,7 @@ import (
 
 type GerenciamentoHandler struct {
 	DB *pgxpool.Pool
+	AuditoriaService *services.AuditoriaService	
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
@@ -181,6 +185,12 @@ func (h *GerenciamentoHandler) CriarUsuario(
 		)
 		return
 	}
+	h.registrarAuditoria(
+		r,
+		"CRIAR_USUARIO",
+		"usuario",
+		usuario.ID,
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -188,61 +198,6 @@ func (h *GerenciamentoHandler) CriarUsuario(
 	json.NewEncoder(w).Encode(usuario)
 }
 
-func (h *DepartamentoHandler) Criar(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	var req struct {
-		Nome string `json:"nome"`
-	}
-
-	if err := decodeJSON(w, r, &req); err != nil {
-		return
-	}
-
-	req.Nome = strings.TrimSpace(req.Nome)
-
-	if req.Nome == "" {
-		http.Error(
-			w,
-			"Nome do departamento é obrigatório",
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	var departamento models.Departamento
-
-	err := h.DB.QueryRow(
-		r.Context(),
-		`
-		INSERT INTO departamentos (
-			nome
-		)
-		VALUES ($1)
-		RETURNING id, nome
-		`,
-		req.Nome,
-	).Scan(
-		&departamento.Id,
-		&departamento.Nome,
-	)
-
-	if err != nil {
-		log.Println("Erro ao criar departamento:", err)
-		http.Error(
-			w,
-			"Erro ao criar departamento",
-			http.StatusInternalServerError,
-		)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(departamento)
-}
 func (h *GerenciamentoHandler) CriarTerminal(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -271,10 +226,11 @@ func (h *GerenciamentoHandler) CriarTerminal(
 		`
 		INSERT INTO terminais (
 			terminal,
-			departamento_id
+			departamento_id,
+			ativo
 		)
-		VALUES ($1, $2)
-		RETURNING id, terminal, departamento_id
+		VALUES ($1, $2, TRUE)
+		RETURNING id, terminal, departamento_id, ativo
 		`,
 		req.Terminal,
 		req.DepartamentoID,
@@ -282,6 +238,7 @@ func (h *GerenciamentoHandler) CriarTerminal(
 		&terminal.ID,
 		&terminal.Terminal,
 		&terminal.DepartamentoID,
+		&terminal.Ativo,
 	)
 
 	if err != nil {
@@ -293,6 +250,13 @@ func (h *GerenciamentoHandler) CriarTerminal(
 		)
 		return
 	}
+
+	h.registrarAuditoria(
+		r,
+		"CRIAR_TERMINAL",
+		"terminal",
+		terminal.ID,
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -522,10 +486,12 @@ func (h *GerenciamentoHandler) ListarTerminais(
 			t.id,
 			t.terminal,
 			t.departamento_id,
-			d.nome
+			d.nome,
+			t.ativo
 		FROM terminais t
 		INNER JOIN departamentos d
 			ON d.id = t.departamento_id
+		WHERE t.ativo = TRUE
 		ORDER BY t.id
 		`,
 	)
@@ -554,6 +520,7 @@ func (h *GerenciamentoHandler) ListarTerminais(
 			&terminal.Terminal,
 			&terminal.DepartamentoID,
 			&terminal.Departamento,
+			&terminal.Ativo,
 		); err != nil {
 			log.Println("Erro ao ler terminal:", err)
 
@@ -748,6 +715,13 @@ func (h *GerenciamentoHandler) CriarDepartamento(
 
 		return
 	}
+
+	h.registrarAuditoria(
+		r,
+		"CRIAR_DEPARTAMENTO",
+		"departamento",
+		departamento.Id,
+	)
 
 	w.Header().Set(
 		"Content-Type",
@@ -1045,6 +1019,13 @@ func (h *GerenciamentoHandler) AtualizarTerminal(
 		return
 	}
 
+	h.registrarAuditoria(
+		r,
+		"EDITAR_TERMINAL",
+		"terminal",
+		terminal.ID,
+	)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(terminal)
 }
@@ -1127,6 +1108,13 @@ func (h *GerenciamentoHandler) AtualizarDepartamento(
 		)
 		return
 	}
+
+	h.registrarAuditoria(
+		r,
+		"EDITAR_DEPARTAMENTO",
+		"departamento",
+		departamento.Id,
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(departamento)
@@ -1297,6 +1285,13 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 			return
 		}
 
+		h.registrarAuditoria(
+			r,
+			"TROCAR_SENHA",
+			"usuario",
+			id,
+		)
+
 		if err != nil {
 			log.Println("Erro ao atualizar usuário:", err)
 
@@ -1332,6 +1327,13 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 			)
 			return
 		}
+
+		h.registrarAuditoria(
+			r,
+			"EDITAR_USUARIO",
+			"usuario",
+			id,
+		)
 	}
 
 	var usuario models.UsuarioGerenciamento
@@ -1388,4 +1390,236 @@ func (h *GerenciamentoHandler) FuncionarioPorID(
 			http.StatusMethodNotAllowed,
 		)
 	}
+}
+
+func (h *GerenciamentoHandler) registrarAuditoria(
+	r *http.Request,
+	acao string,
+	entidade string,
+	entidadeID int64,
+) {
+	if h.AuditoriaService == nil {
+		log.Println("Serviço de auditoria não configurado")
+		return
+	}
+
+	usuario, ok := middleware.UsuarioDoContexto(r)
+
+	if !ok {
+		log.Println("Usuário autenticado não encontrado no contexto")
+		return
+	}
+
+	ip := r.RemoteAddr
+
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		ip = host
+	}
+
+	if err := h.AuditoriaService.Registrar(
+		r.Context(),
+		usuario.ID,
+		acao,
+		entidade,
+		&entidadeID,
+		ip,
+		"",
+	); err != nil {
+		log.Println("Erro ao registrar auditoria:", err)
+	}
+}
+
+func (h *GerenciamentoHandler) DesativarTerminal(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodDelete {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	idTexto := strings.TrimPrefix(
+		r.URL.Path,
+		"/admin/terminais/",
+	)
+
+	var id int64
+
+	if _, err := fmt.Sscan(idTexto, &id); err != nil || id <= 0 {
+		http.Error(
+			w,
+			"ID do terminal inválido",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	result, err := h.DB.Exec(
+		r.Context(),
+		`
+		UPDATE terminais
+		SET ativo = FALSE
+		WHERE id = $1
+		  AND ativo = TRUE
+		`,
+		id,
+	)
+
+	if err != nil {
+		log.Println("Erro ao desativar terminal:", err)
+
+		http.Error(
+			w,
+			"Não foi possível desativar o terminal",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		http.Error(
+			w,
+			"Terminal não encontrado ou já desativado",
+			http.StatusNotFound,
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *GerenciamentoHandler) DesativarDepartamento(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodDelete {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	idTexto := strings.TrimPrefix(
+		r.URL.Path,
+		"/admin/departamentos/",
+	)
+
+	var id int64
+
+	if _, err := fmt.Sscan(idTexto, &id); err != nil || id <= 0 {
+		http.Error(
+			w,
+			"ID do departamento inválido",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	result, err := h.DB.Exec(
+		r.Context(),
+		`
+		UPDATE departamentos
+		SET ativo = FALSE
+		WHERE id = $1
+		  AND ativo = TRUE
+		`,
+		id,
+	)
+
+	if err != nil {
+		log.Println("Erro ao desativar departamento:", err)
+
+		http.Error(
+			w,
+			"Não foi possível desativar o departamento",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		http.Error(
+			w,
+			"Departamento não encontrado ou já desativado",
+			http.StatusNotFound,
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *GerenciamentoHandler) DesativarFuncionario(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodDelete {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	id, err := strconv.ParseInt(
+		r.PathValue("id"),
+		10,
+		64,
+	)
+
+	if err != nil || id <= 0 {
+		http.Error(
+			w,
+			"ID do funcionário inválido",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	result, err := h.DB.Exec(
+		r.Context(),
+		`
+		UPDATE funcionarios
+		SET ativo = FALSE
+		WHERE id = $1
+		  AND ativo = TRUE
+		`,
+		id,
+	)
+
+	if err != nil {
+		log.Println("Erro ao desativar funcionário:", err)
+
+		http.Error(
+			w,
+			"Não foi possível desativar o funcionário",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		http.Error(
+			w,
+			"Funcionário não encontrado ou já desativado",
+			http.StatusNotFound,
+		)
+		return
+	}
+
+	h.registrarAuditoria(
+		r,
+		"DESATIVAR_FUNCIONARIO",
+		"funcionario",
+		id,
+	)
+
+	w.WriteHeader(http.StatusNoContent)
 }

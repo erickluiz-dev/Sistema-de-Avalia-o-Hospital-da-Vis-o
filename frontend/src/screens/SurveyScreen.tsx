@@ -1,5 +1,4 @@
-
-import type { RatingKey} from '../types'
+import type { RatingKey } from '../types'
 import { useState } from 'react'
 import { apiFetch } from '../services/api'
 import { RATINGS } from '../constants/ratings'
@@ -18,6 +17,7 @@ export default function SurveyScreen({
   const [selected, setSelected] = useState<RatingKey | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [countdown, setCountdown] = useState(2)
+  const [enviando, setEnviando] = useState(false)
 
   const enviarAvaliacao = async (nota: RatingKey) => {
     try {
@@ -48,38 +48,46 @@ export default function SurveyScreen({
   }
 
   const handleSubmit = async () => {
-
     if (!selected) {
       alert('Selecione uma avaliação.')
       return
     }
 
-    const sucesso = await enviarAvaliacao(selected)
-
-    if (!sucesso) {
-      alert('Não foi possível registrar a avaliação.')
+    if (enviando) {
       return
     }
 
-    setSubmitted(true)
-    setCountdown(2)
+    setEnviando(true)
 
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
+    try {
+      const sucesso = await enviarAvaliacao(selected)
 
-          setSelected(null)
-          setSubmitted(false)
+      if (!sucesso) {
+        alert('Não foi possível registrar a avaliação.')
+        return
+      }
 
-          return 2
-        }
+      setSubmitted(true)
+      setCountdown(2)
 
-        return prev - 1
-      })
-    }, 1000)
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval)
+
+            setSelected(null)
+            setSubmitted(false)
+
+            return 2
+          }
+
+          return prev - 1
+        })
+      }, 1000)
+    } finally {
+      setEnviando(false)
+    }
   }
-
 
   if (submitted) {
     const sel = RATINGS.find((r) => r.key === selected)
@@ -195,7 +203,11 @@ export default function SurveyScreen({
             return (
               <div
                 key={r.key}
-                onClick={() => setSelected(r.key)}
+                onClick={() => {
+                  if (!enviando) {
+                    setSelected(r.key)
+                  }
+                }}
                 className="flex-1 flex flex-col items-center justify-center gap-4 py-8 px-4 rounded-2xl cursor-pointer transition-all duration-200"
                 style={{
                   background: isSelected ? r.bg : 'white',
@@ -208,9 +220,11 @@ export default function SurveyScreen({
                   transform: isSelected
                     ? 'scale(1.04)'
                     : 'scale(1)',
+                  opacity: enviando ? 0.7 : 1,
+                  pointerEvents: enviando ? 'none' : 'auto',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) {
+                  if (!isSelected && !enviando) {
                     e.currentTarget.style.borderColor =
                       r.color + '60'
 
@@ -222,7 +236,7 @@ export default function SurveyScreen({
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isSelected) {
+                  if (!isSelected && !enviando) {
                     e.currentTarget.style.borderColor =
                       '#f3f4f6'
 
@@ -281,22 +295,31 @@ export default function SurveyScreen({
           {selected && (
             <button
               onClick={handleSubmit}
-              className="px-12 py-4 rounded-2xl text-white font-semibold text-base transition-all duration-200 cursor-pointer"
+              disabled={enviando}
+              className={`px-12 py-4 rounded-2xl text-white font-semibold text-base transition-all duration-200 ${
+                enviando
+                  ? 'cursor-not-allowed opacity-70'
+                  : 'cursor-pointer'
+              }`}
               style={{
                 background:
                   'linear-gradient(135deg,#04c7e0,#0697aa)',
                 boxShadow: '0 6px 20px #00b4cc59',
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform =
-                  'translateY(-2px)')
-              }
+              onMouseEnter={(e) => {
+                if (!enviando) {
+                  e.currentTarget.style.transform =
+                    'translateY(-2px)'
+                }
+              }}
               onMouseLeave={(e) =>
                 (e.currentTarget.style.transform =
                   'translateY(0)')
               }
             >
-              Enviar Avaliação
+              {enviando
+                ? 'Enviando...'
+                : 'Enviar Avaliação'}
             </button>
           )}
         </div>
@@ -304,3 +327,4 @@ export default function SurveyScreen({
     </div>
   )
 }
+

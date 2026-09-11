@@ -48,7 +48,9 @@ func ExigirCSRF(next http.Handler) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/login" {
+		if r.URL.Path == "/login" ||
+			r.URL.Path == "/recuperacao-senha" ||
+			r.URL.Path == "/redefinir-senha" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -88,5 +90,17 @@ func ExigirCSRF(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func LimparCSRFToken(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     csrfCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: false,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
 	})
 }

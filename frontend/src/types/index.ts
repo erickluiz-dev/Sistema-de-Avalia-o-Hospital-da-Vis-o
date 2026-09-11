@@ -1,5 +1,7 @@
 export type Screen =
   | 'login'
+  | 'forgot-password'
+  | 'reset-password'
   | 'home'
   | 'department'
   | 'survey'
@@ -35,6 +37,12 @@ export type Departamento = {
   nome: string
 }
 
+export type Terminal = {
+  id: number
+  terminal: string
+  departamento_id: number
+}
+
 export type AvaliacoesPaginadas = {
   avaliacoes: Avaliacao[]
   pagina: number
@@ -45,6 +53,7 @@ export type AvaliacoesPaginadas = {
 
 export type Estatisticas = {
   total_avaliacoes: number
+
   excelente: number
   bom: number
   razoavel: number
@@ -65,6 +74,7 @@ export type Estatisticas = {
 
   satisfacao_semana_atual: number
   satisfacao_semana_anterior: number
+
   avaliacoes_ultimos_7_dias: AvaliacaoPorDia[]
   historico_pontuacao: HistoricoPontuacao[]
   satisfacao_por_mes: SatisfacaoPorMes[]
@@ -96,15 +106,10 @@ export type AvaliacaoPorDepartamento = {
 export type AvaliacaoPorFuncionario = {
   funcionario_id: number
   funcionario: string
+
   excelente: number
   bom: number
   razoavel: number
   ruim: number
   pessimo: number
-}
-
-export type Terminal = {
-  id: number
-  terminal: string
-  departamento_id: number
 }

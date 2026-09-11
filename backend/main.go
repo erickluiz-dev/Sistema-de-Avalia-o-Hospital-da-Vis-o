@@ -10,6 +10,7 @@ import (
 	"backend/handlers"
 	"backend/jobs"
 	"backend/middleware"
+	"backend/services"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -19,6 +20,14 @@ var db *pgxpool.Pool
 func main() {
 
 	cfg := config.Load()
+
+	emailService := services.NewEmailService(
+		cfg.SMTPHost,
+		cfg.SMTPPort,
+		cfg.SMTPUsername,
+		cfg.SMTPPassword,
+		cfg.SMTPFrom,
+	)
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL não configurada")
@@ -37,9 +46,13 @@ func main() {
 	if err := database.Ping(db); err != nil {
 		log.Fatal("Erro ao conectar ao PostgreSQL:", err)
 	}
+
 	imprimirSeparador()
 
 	fmt.Println("Banco de dados conectado!")
+
+	// Serviço de auditoria
+	auditoriaService := services.NewAuditoriaService(db)
 
 	jobs.IniciarLimpezaSessoes(
 		db,
@@ -49,7 +62,9 @@ func main() {
 	loginLimiter := middleware.NewLoginLimiter()
 
 	authHandler := &handlers.AuthHandler{
-		DB: db,
+		DB:           db,
+		EmailService: emailService,
+		FrontendURL:  cfg.FrontendURL,
 	}
 
 	avaliacaoHandler := &handlers.AvaliacaoHandler{
@@ -70,7 +85,8 @@ func main() {
 	)
 
 	gerenciamentoHandler := &handlers.GerenciamentoHandler{
-		DB: db,
+		DB:              db,
+		AuditoriaService: auditoriaService,
 	}
 
 	handler := configurarRotas(
@@ -81,6 +97,7 @@ func main() {
 		gerenciamentoHandler,
 		loginLimiter,
 		rateLimiter,
+		cfg.AllowedOrigins,
 	)
 
 	fmt.Println("Servidor iniciado!")

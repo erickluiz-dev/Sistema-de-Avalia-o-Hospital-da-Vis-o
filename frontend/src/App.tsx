@@ -8,6 +8,8 @@ import HomeScreen from './screens/HomeScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import DepartmentScreen from './screens/DepartmentScreen'
 import ManagementScreen from './screens/ManagementScreen'
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen'
+import ResetPasswordScreen from './screens/ResetPasswordScreen'
 
 import type {
   Screen,
@@ -20,12 +22,37 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [verificandoSessao, setVerificandoSessao] = useState(true)
+
   const [departamentoId, setDepartamentoId] = useState<number | null>(null)
   const [terminalId, setTerminalId] = useState<number | null>(null)
   const [mostrarDepartamento, setMostrarDepartamento] = useState(false)
 
+  const [resetToken, setResetToken] = useState('')
+
+  // ─── Verificação inicial ───────────────────────────────────────────────────
+
   useEffect(() => {
-    const verificarSessao = async () => {
+    const inicializarAplicacao = async () => {
+      // Verifica se o usuário chegou através do link
+      // de recuperação de senha.
+      const params = new URLSearchParams(
+        window.location.search,
+      )
+
+      const token = params.get('token')
+
+      if (
+        window.location.pathname === '/redefinir-senha' &&
+        token
+      ) {
+        setResetToken(token)
+        setScreen('reset-password')
+        setVerificandoSessao(false)
+
+        return
+      }
+
+      // Caso contrário, verifica a sessão normalmente.
       try {
         const response = await apiFetch('/me', {
           method: 'GET',
@@ -38,15 +65,21 @@ export default function App() {
         }
 
         if (!response.ok) {
-          throw new Error(`Erro HTTP ${response.status}`)
+          throw new Error(
+            `Erro HTTP ${response.status}`,
+          )
         }
 
-        const usuarioAtual: Usuario = await response.json()
+        const usuarioAtual: Usuario =
+          await response.json()
 
         setUsuario(usuarioAtual)
         setScreen('home')
       } catch (error) {
-        console.error('Erro ao verificar sessão:', error)
+        console.error(
+          'Erro ao verificar sessão:',
+          error,
+        )
 
         setUsuario(null)
         setScreen('login')
@@ -55,8 +88,28 @@ export default function App() {
       }
     }
 
-    verificarSessao()
+    inicializarAplicacao()
   }, [])
+
+  // ─── Logout ────────────────────────────────────────────────────────────────
+
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/logout', {
+        method: 'POST',
+      })
+    } catch (error) {
+      console.error(
+        'Erro ao encerrar sessão:',
+        error,
+      )
+    } finally {
+      setUsuario(null)
+      setScreen('login')
+    }
+  }
+
+  // ─── Tela de carregamento ──────────────────────────────────────────────────
 
   if (verificandoSessao) {
     return (
@@ -72,29 +125,53 @@ export default function App() {
     )
   }
 
-  const handleLogout = async () => {
-    try {
-      await apiFetch('/logout', {
-        method: 'POST',
-      })
-    } catch (error) {
-      console.error('Erro ao encerrar sessão:', error)
-    } finally {
-      setUsuario(null)
-      setScreen('login')
-    }
-  }
+  // ─── Renderização das telas ────────────────────────────────────────────────
 
   return (
     <>
+      {/* LOGIN */}
+
       {screen === 'login' && (
         <Login
           onLogin={(usuarioAutenticado) => {
             setUsuario(usuarioAutenticado)
             setScreen('home')
           }}
+          onForgotPassword={() => {
+            setScreen('forgot-password')
+          }}
         />
       )}
+
+      {/* RECUPERAÇÃO DE SENHA */}
+
+      {screen === 'forgot-password' && (
+        <ForgotPasswordScreen
+          onBack={() => {
+            setScreen('login')
+          }}
+        />
+      )}
+
+      {/* REDEFINIÇÃO DE SENHA */}
+
+      {screen === 'reset-password' && (
+        <ResetPasswordScreen
+          token={resetToken}
+          onBack={() => {
+            window.history.replaceState(
+              {},
+              '',
+              '/',
+            )
+
+            setResetToken('')
+            setScreen('login')
+          }}
+        />
+      )}
+
+      {/* HOME */}
 
       {screen === 'home' && (
         <>
@@ -102,14 +179,25 @@ export default function App() {
             usuario={usuario}
             onNav={setScreen}
             onLogout={handleLogout}
-            onStartSurvey={() => setMostrarDepartamento(true)}
+            onStartSurvey={() => {
+              setMostrarDepartamento(true)
+            }}
           />
 
           {mostrarDepartamento && (
             <DepartmentScreen
-              onStart={(departamentoIdSelecionado, terminalIdSelecionado) => {
-                setDepartamentoId(departamentoIdSelecionado)
-                setTerminalId(terminalIdSelecionado)
+              onStart={(
+                departamentoIdSelecionado,
+                terminalIdSelecionado,
+              ) => {
+                setDepartamentoId(
+                  departamentoIdSelecionado,
+                )
+
+                setTerminalId(
+                  terminalIdSelecionado,
+                )
+
                 setMostrarDepartamento(false)
                 setScreen('survey')
               }}
@@ -120,6 +208,8 @@ export default function App() {
           )}
         </>
       )}
+
+      {/* PESQUISA */}
 
       {screen === 'survey' &&
         departamentoId !== null &&
@@ -134,22 +224,30 @@ export default function App() {
             }}
           />
         )}
+
+      {/* DASHBOARD */}
+
       {screen === 'dashboard' && (
         <DashboardScreen
-          onBack={() => setScreen('home')}
+          onBack={() => {
+            setScreen('home')
+          }}
           onLogout={handleLogout}
           usuario={usuario}
         />
       )}
 
+      {/* GERENCIAMENTO */}
+
       {screen === 'management' && (
         <ManagementScreen
-          onBack={() => setScreen('home')}
+          onBack={() => {
+            setScreen('home')
+          }}
           onLogout={handleLogout}
           usuario={usuario}
         />
       )}
     </>
-    
   )
 }

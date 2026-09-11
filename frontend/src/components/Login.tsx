@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
 import Logo from './Logo'
@@ -7,12 +7,18 @@ import type { Usuario } from '../types'
 
 interface LoginScreenProps {
   onLogin: (usuario: Usuario) => void
+  onForgotPassword: () => void
 }
 
-function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [email, setEmail] = useState('')
+function LoginScreen({ onLogin, onForgotPassword, }: LoginScreenProps) {
+  const REMEMBERED_LOGIN_KEY = 'remembered_login'
+  const [email, setEmail] = useState(() => {
+    return localStorage.getItem(REMEMBERED_LOGIN_KEY) ?? ''
+  })
   const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
+  const [remember, setRemember] = useState(() => {
+    return localStorage.getItem(REMEMBERED_LOGIN_KEY) !== null
+  })
   const [showPassword, setShowPassword] = useState(false)
 
   const [loginLoading, setLoginLoading] = useState(false)
@@ -46,6 +52,15 @@ function LoginScreen({ onLogin }: LoginScreenProps) {
       }
 
       const usuario = await response.json()
+
+      if (remember) {
+        localStorage.setItem(
+          REMEMBERED_LOGIN_KEY,
+          email.trim(),
+        )
+      } else {
+        localStorage.removeItem(REMEMBERED_LOGIN_KEY)
+      }
 
       onLogin(usuario)
 
@@ -332,7 +347,7 @@ function LoginScreen({ onLogin }: LoginScreenProps) {
 
                 <button
                   type="button"
-                  onClick={() => { }}
+                  onClick={onForgotPassword}
                   className="text-sm text-[#00B5CC] hover:text-blue-700 font-medium transition-colors cursor-pointer"
                 >
                   Esqueci a senha?

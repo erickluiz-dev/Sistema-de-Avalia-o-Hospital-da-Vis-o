@@ -29,6 +29,7 @@ type TerminalGerenciamento struct {
 	Terminal       string `json:"terminal"`
 	DepartamentoID int64  `json:"departamento_id"`
 	Departamento   string `json:"departamento"`
+	Ativo          bool   `json:"ativo"`
 }
 
 type CriarTerminalRequest struct {
