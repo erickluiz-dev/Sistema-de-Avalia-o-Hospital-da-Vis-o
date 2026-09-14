@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+
 var db *pgxpool.Pool
 
 func main() {
@@ -84,8 +85,11 @@ func main() {
 		time.Minute,
 	)
 
+	clientIPResolver := middleware.NewClientIPResolver()
+
 	gerenciamentoHandler := &handlers.GerenciamentoHandler{
-		DB:              db,
+		DB:               db,
+		ClientIPResolver: clientIPResolver,
 		AuditoriaService: auditoriaService,
 	}
 

@@ -69,8 +69,6 @@ func configurarRotas(
 				avaliacaoHandler.Criar(w, r)
 
 			case http.MethodGet:
-				// GET /avaliacoes NÃO é público.
-				// A listagem administrativa é tratada abaixo.
 				middleware.ExigirAutenticacao(
 					authHandler.Authenticate,
 					middleware.ExigirAdmin(
@@ -87,6 +85,7 @@ func configurarRotas(
 			}
 		},
 	)
+	
 
 	// ============================================================
 	// ROTAS AUTENTICADAS
@@ -179,7 +178,7 @@ func configurarRotas(
 	)
 
 	mux.Handle(
-		"/admin/funcionarios/",
+		"/admin/funcionarios/{id}",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
 			middleware.ExigirAdmin(
@@ -203,11 +202,26 @@ func configurarRotas(
 	)
 
 	mux.Handle(
-		"/admin/terminais/",
+		"/admin/terminais/{id}",
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
 			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.AtualizarTerminal),
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch r.Method {
+					case http.MethodPut:
+						gerenciamentoHandler.AtualizarTerminal(w, r)
+
+					case http.MethodDelete:
+						gerenciamentoHandler.DesativarTerminal(w, r)
+
+					default:
+						http.Error(
+							w,
+							"Método não permitido",
+							http.StatusMethodNotAllowed,
+						)
+					}
+				}),
 			),
 		),
 	)
@@ -231,7 +245,22 @@ func configurarRotas(
 		middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
 			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.AtualizarDepartamento),
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch r.Method {
+					case http.MethodPut:
+						gerenciamentoHandler.AtualizarDepartamento(w, r)
+
+					case http.MethodDelete:
+						gerenciamentoHandler.DesativarDepartamento(w, r)
+
+					default:
+						http.Error(
+							w,
+							"Método não permitido",
+							http.StatusMethodNotAllowed,
+						)
+					}
+				}),
 			),
 		),
 	)

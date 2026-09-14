@@ -35,6 +35,7 @@ func (h *TerminalHandler) Listar(
 			terminal,
 			departamento_id
 		FROM terminais
+		WHERE ativo = TRUE
 		ORDER BY id
 		`,
 	)

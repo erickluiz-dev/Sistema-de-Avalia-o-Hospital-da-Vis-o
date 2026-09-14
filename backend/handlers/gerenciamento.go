@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"net"
 	"strconv"
 
 	"backend/middleware"
@@ -21,6 +20,7 @@ import (
 
 type GerenciamentoHandler struct {
 	DB *pgxpool.Pool
+	ClientIPResolver *middleware.ClientIPResolver
 	AuditoriaService *services.AuditoriaService	
 }
 
@@ -756,7 +756,7 @@ func (h *GerenciamentoHandler) VincularTerminal(
 
 	idTexto := strings.TrimPrefix(
 		r.URL.Path,
-		"/admin/funcionarios/",
+		"/admin/funcionarios/{id}",
 	)
 
 	idTexto = strings.TrimSuffix(
@@ -892,7 +892,7 @@ func (h *GerenciamentoHandler) AtualizarFuncionario(
 
 	idTexto := strings.TrimPrefix(
 		r.URL.Path,
-		"/admin/funcionarios/",
+		"/admin/funcionarios/{id}",
 	)
 
 	var id int64
@@ -973,7 +973,7 @@ func (h *GerenciamentoHandler) AtualizarTerminal(
 
 	idTexto := strings.TrimPrefix(
 		r.URL.Path,
-		"/admin/terminais/",
+		"/admin/terminais/{id}",
 	)
 
 	var id int64
@@ -997,7 +997,7 @@ func (h *GerenciamentoHandler) AtualizarTerminal(
 			terminal = $1,
 			departamento_id = $2
 		WHERE id = $3
-		RETURNING id, terminal, departamento_id
+		RETURNING id, terminal, departamento_id, ativo
 		`,
 		req.Terminal,
 		req.DepartamentoID,
@@ -1006,6 +1006,7 @@ func (h *GerenciamentoHandler) AtualizarTerminal(
 		&terminal.ID,
 		&terminal.Terminal,
 		&terminal.DepartamentoID,
+		&terminal.Ativo,
 	)
 
 	if err != nil {
@@ -1264,6 +1265,11 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 			id,
 		)
 
+		if err != nil {
+			http.Error(w, "Erro ao atualizar usuário", http.StatusInternalServerError)
+			return
+		}
+
 		_, err = h.DB.Exec(
 			r.Context(),
 			`
@@ -1274,14 +1280,7 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 		)
 
 		if err != nil {
-			log.Println("Erro ao revogar sessões após alteração de senha:", err)
-
-			http.Error(
-				w,
-				"Não foi possível concluir a alteração da senha",
-				http.StatusInternalServerError,
-			)
-
+			http.Error(w, "Erro ao invalidar sessões", http.StatusInternalServerError)
 			return
 		}
 
@@ -1292,16 +1291,6 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 			id,
 		)
 
-		if err != nil {
-			log.Println("Erro ao atualizar usuário:", err)
-
-			http.Error(
-				w,
-				"Não foi possível atualizar usuário",
-				http.StatusInternalServerError,
-			)
-			return
-		}
 	} else {
 		_, err := h.DB.Exec(
 			r.Context(),
@@ -1410,11 +1399,7 @@ func (h *GerenciamentoHandler) registrarAuditoria(
 		return
 	}
 
-	ip := r.RemoteAddr
-
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		ip = host
-	}
+	ip := h.ClientIPResolver.ObterIP(r)
 
 	if err := h.AuditoriaService.Registrar(
 		r.Context(),
