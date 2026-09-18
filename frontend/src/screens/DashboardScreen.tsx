@@ -1,180 +1,153 @@
-import { useState, useEffect, useRef } from 'react'
-
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
-} from 'recharts'
-
-import {
-  ratingLabel,
-  ratingColor,
-} from '../utils/ratings'
-
+import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 
 import NavBar from '../components/NavBar'
-import StatCard from '../components/StatCard'
+import { ratingColor } from '../utils/ratings'
+import type { Usuario } from '../types'
 
-import { apiFetch } from '../services/api'
+import AvaliacaoPorDepartamentoChart from './dashboard/components/AvaliacaoPorDepartamentoChart'
+import AvaliacaoPorFuncionarioChart from './dashboard/components/AvaliacaoPorFuncionarioChart'
+import AvaliacoesPorDiaChart from './dashboard/components/AvaliacoesPorDiaChart'
+import AvaliacoesRecentesTable from './dashboard/components/AvaliacoesRecentesTable'
+import DashboardKpiCards from './dashboard/components/DashboardKpiCards'
+import DashboardLoadingOverlay from './dashboard/components/DashboardLoadingOverlay'
+import DashboardStatCards from './dashboard/components/DashboardStatCards'
+import DistribuicaoSatisfacaoChart from './dashboard/components/DistribuicaoSatisfacaoChart'
+import HistoricoPontuacaoChart from './dashboard/components/HistoricoPontuacaoChart'
+import SatisfacaoPorMesChart from './dashboard/components/SatisfacaoPorMesChart'
+import { useDashboardData } from './dashboard/hooks/useDashboardData'
 
-import type {
-  Avaliacao,
-  AvaliacoesPaginadas,
-  Usuario,
-  Estatisticas,
-  AvaliacaoPorFuncionario,
-} from '../types'
+type DashboardScreenProps = {
+  onBack: () => void
+  onLogout: () => void
+  usuario: Usuario | null
+}
 
-// ─── Screen 4: Admin Dashboard ────────────────────────────────────────────────
+export default function DashboardScreen({ onBack, onLogout, usuario }: DashboardScreenProps) {
+  const {
+    search,
+    setSearch,
+    avaliacoes,
+    pagina,
+    setPagina,
+    totalPaginas,
+    totalAvaliacoes,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
+    carregando,
+    estatisticas,
+    carregarAvaliacoes,
+  } = useDashboardData()
 
-export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack: () => void; onLogout: () => void;  usuario: Usuario | null }) {
-  const [search, setSearch] = useState('')
-  const [funcionarioSearch, setFuncionarioSearch] = useState('')
-  const [funcionarioSelecionado, setFuncionarioSelecionado] =
-    useState<AvaliacaoPorFuncionario | null>(null)
-  const [indiceFuncionario, setIndiceFuncionario] = useState(0)
-  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
-
-  const [pagina, setPagina] = useState(1)
-  const [totalPaginas, setTotalPaginas] = useState(0)
-  const [totalAvaliacoes, setTotalAvaliacoes] = useState(0)
-
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
-  const [carregando, setCarregando] = useState(true)
-  const relatorioRef = useRef<HTMLDivElement>(null)
   const [exportando, setExportando] = useState(false)
-  const [estatisticas, setEstatisticas] =
-    useState<Estatisticas | null>(null)
+  const relatorioRef = useRef<HTMLDivElement>(null)
 
-  const [mostrarSugestoesFuncionario, setMostrarSugestoesFuncionario] =
-    useState(false)
+  const quantidadeExcelente = estatisticas?.excelente ?? 0
+  const quantidadeBom = estatisticas?.bom ?? 0
+  const quantidadeRazoavel = estatisticas?.razoavel ?? 0
+  const quantidadeRuim = estatisticas?.ruim ?? 0
+  const quantidadePessimo = estatisticas?.pessimo ?? 0
+  const totalAvaliacoesGeral = estatisticas?.total_avaliacoes ?? 0
+  const quantidadeRuimPessimo = quantidadeRuim + quantidadePessimo
+  const pontuacaoMedia = estatisticas?.pontuacao_media ?? 0
+  const pontuacaoMediaFormatada = pontuacaoMedia.toFixed(2)
+  const avaliacoesHoje = estatisticas?.avaliacoes_hoje ?? 0
+  const avaliacoesOntem = estatisticas?.avaliacoes_ontem ?? 0
+  const variacaoAvaliacoesHoje = avaliacoesHoje - avaliacoesOntem
+  const avaliacoesSemanaAtual = estatisticas?.avaliacoes_semana_atual ?? 0
+  const avaliacoesSemanaAnterior = estatisticas?.avaliacoes_semana_anterior ?? 0
+  const crescimentoSemanal = avaliacoesSemanaAnterior > 0
+    ? Math.round(((avaliacoesSemanaAtual - avaliacoesSemanaAnterior) / avaliacoesSemanaAnterior) * 100)
+    : 0
+  const satisfacaoGeral = estatisticas?.satisfacao_geral ?? 0
+  const barData = estatisticas?.avaliacoes_ultimos_7_dias ?? []
+  const avaliacaoDepartamentos = estatisticas?.avaliacao_por_departamento ?? []
+  const historicoPontuacao = estatisticas?.historico_pontuacao ?? []
+  const satisfacaoPorMes = estatisticas?.satisfacao_por_mes ?? []
+  const avaliacaoFuncionarios = estatisticas?.avaliacao_por_funcionario ?? []
 
-  const carregarEstatisticas = async () => {
-    try {
-      const response = await apiFetch(
-        '/avaliacoes/estatisticas',
-        {
-          method: 'GET',
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(
-          'Erro ao buscar estatísticas',
-        )
-      }
-
-      const dados: Estatisticas =
-        await response.json()
-
-      setEstatisticas(dados)
-    } catch (error) {
-      console.error(
-        'Erro ao carregar estatísticas:',
-        error,
-      )
-    }
+  const porcentagem = (quantidade: number) => {
+    if (totalAvaliacoesGeral === 0) return 0
+    return Math.round((quantidade / totalAvaliacoesGeral) * 100)
   }
 
-  const recentEvals = avaliacoes.map((avaliacao) => ({
-    date: new Date(avaliacao.data).toLocaleString('pt-BR'),
-    rating: ratingLabel(avaliacao.avaliacao),
-    departamento: avaliacao.departamento,
-    terminal: avaliacao.terminal,
-    funcionario: avaliacao.funcionario,
-  }))
+  const pieDataReal = [
+    { name: 'Excelente', value: quantidadeExcelente, color: '#00B5CC' },
+    { name: 'Bom', value: quantidadeBom, color: '#0eb374' },
+    { name: 'Razoável', value: quantidadeRazoavel, color: '#EAB308' },
+    { name: 'Ruim', value: quantidadeRuim, color: '#F97316' },
+    { name: 'Péssimo', value: quantidadePessimo, color: '#EF4444' },
+  ]
 
-  const carregarAvaliacoes = async (
-    paginaAtual = pagina,
-  ) => {
-    try {
-      setCarregando(true)
+  const statCards = [
+    {
+      label: 'Total de Avaliações',
+      value: totalAvaliacoesGeral.toLocaleString('pt-BR'),
+      sub: `${avaliacoesHoje} hoje`,
+      color: '#00B5CC',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>,
+    },
+    {
+      label: 'Excelente',
+      value: quantidadeExcelente.toString(),
+      sub: `${porcentagem(quantidadeExcelente)}% do total`,
+      color: '#00B5CC',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>,
+    },
+    {
+      label: 'Bom',
+      value: quantidadeBom.toString(),
+      sub: `${porcentagem(quantidadeBom)}% do total`,
+      color: '#0eb374',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>,
+    },
+    {
+      label: 'Razoável',
+      value: quantidadeRazoavel.toString(),
+      sub: `${porcentagem(quantidadeRazoavel)}% do total`,
+      color: '#EAB308',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>,
+    },
+    {
+      label: 'Ruim + Péssimo',
+      value: quantidadeRuimPessimo.toString(),
+      sub: `${porcentagem(quantidadeRuimPessimo)}% do total`,
+      color: '#EF4444',
+      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,
+    },
+  ]
 
-      const params = new URLSearchParams()
-
-      params.set('page', paginaAtual.toString())
-      params.set('limit', '10')
-
-      if (search.trim()) {
-        params.set('search', search.trim())
-      }
-
-      if (dataInicio) {
-        params.set('data_inicio', dataInicio)
-      }
-
-      if (dataFim) {
-        params.set('data_fim', dataFim)
-      }
-
-      const response = await apiFetch(
-        `/avaliacoes?${params.toString()}`,
-        {
-          method: 'GET',
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(
-          'Erro ao buscar avaliações',
-        )
-      }
-
-      const dados: AvaliacoesPaginadas =
-        await response.json()
-
-      setAvaliacoes(dados.avaliacoes)
-      setPagina(dados.pagina)
-      setTotalPaginas(dados.total_paginas)
-      setTotalAvaliacoes(dados.total)
-    } catch (error) {
-      console.error(
-        'Erro ao carregar avaliações:',
-        error,
-      )
-    } finally {
-      setCarregando(false)
-    }
-  }
-
-  useEffect(() => {
-    carregarAvaliacoes(1)
-    carregarEstatisticas()
-  }, [])
+  const kpiCards = [
+    { label: 'Satisfação Geral', value: `${pontuacaoMediaFormatada} / 5.0`, trend: 'Todo o período', pos: null },
+    { label: 'Pontuação Média', value: `${satisfacaoGeral.toFixed(2)}%`, trend: 'Todo o período', pos: null },
+    {
+      label: 'Avaliações de Hoje',
+      value: avaliacoesHoje.toString(),
+      trend: `${variacaoAvaliacoesHoje >= 0 ? '↑' : '↓'} ${Math.abs(variacaoAvaliacoesHoje)} vs ontem`,
+      pos: variacaoAvaliacoesHoje > 0 ? true : variacaoAvaliacoesHoje < 0 ? false : null,
+    },
+    {
+      label: 'Crescimento Semanal',
+      value: `${crescimentoSemanal >= 0 ? '+' : ''}${crescimentoSemanal}%`,
+      trend: `${avaliacoesSemanaAtual} avaliações nos últimos 7 dias`,
+      pos: crescimentoSemanal > 0 ? true : crescimentoSemanal < 0 ? false : null,
+    },
+  ]
 
   const exportarRelatorio = async () => {
-    if (!relatorioRef.current) {
-      return
-    }
+    if (!relatorioRef.current) return
 
     const elemento = relatorioRef.current
 
     try {
       setExportando(true)
-
-      // Cria uma cópia do relatório
       const clone = elemento.cloneNode(true) as HTMLDivElement
 
-      // Remove os elementos que não devem aparecer na imagem
-      clone.querySelectorAll('.nao-exportar').forEach((el) => {
-        el.remove()
-      })
+      clone.querySelectorAll('.nao-exportar').forEach((el) => el.remove())
 
-      // Define uma largura fixa para o relatório exportado
       const largura = elemento.getBoundingClientRect().width
-
       clone.setAttribute('data-export-clone', 'true')
       clone.style.width = `${largura}px`
       clone.style.maxWidth = 'none'
@@ -190,13 +163,9 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
       clone.style.flexDirection = 'column'
       clone.style.gap = '24px'
 
-      // Adiciona temporariamente ao documento
       document.body.appendChild(clone)
-
-      // Aguarda a renderização
       await new Promise((resolve) => setTimeout(resolve, 300))
 
-      // Gera a imagem
       const imagem = await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
@@ -205,382 +174,30 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
         height: clone.scrollHeight,
       })
 
-      // Remove a cópia temporária
       document.body.removeChild(clone)
 
-      // Faz o download
       const link = document.createElement('a')
       link.download = 'relatorio-avaliacoes.png'
       link.href = imagem
       link.click()
-
     } catch (error) {
       console.error('Erro ao exportar relatório:', error)
 
-      const cloneExistente = document.querySelector(
-        'main[data-export-clone="true"]'
-      )
-
-      if (cloneExistente) {
-        cloneExistente.remove()
-      }
+      const cloneExistente = document.querySelector('main[data-export-clone="true"]')
+      if (cloneExistente) cloneExistente.remove()
 
       alert('Não foi possível exportar o relatório.')
-
     } finally {
       setExportando(false)
     }
   }
 
-  const quantidadeExcelente =
-    estatisticas?.excelente ?? 0
-
-  const quantidadeBom =
-    estatisticas?.bom ?? 0
-
-  const quantidadeRazoavel =
-    estatisticas?.razoavel ?? 0
-
-  const quantidadeRuim =
-    estatisticas?.ruim ?? 0
-
-  const quantidadePessimo =
-    estatisticas?.pessimo ?? 0
-
-  const totalAvaliacoesGeral =
-    estatisticas?.total_avaliacoes ?? 0
-
-  const quantidadeRuimPessimo =
-    quantidadeRuim + quantidadePessimo
-
-  const pontuacaoMedia =
-    estatisticas?.pontuacao_media ?? 0
-
-  const pontuacaoMediaFormatada =
-  pontuacaoMedia.toFixed(2)
-
-  const avaliacoesHoje =
-    estatisticas?.avaliacoes_hoje ?? 0
-
-  const avaliacoesOntem =
-    estatisticas?.avaliacoes_ontem ?? 0
-
-  const variacaoAvaliacoesHoje =
-    avaliacoesHoje - avaliacoesOntem
-
-  const avaliacoesSemanaAtual =
-    estatisticas?.avaliacoes_semana_atual ?? 0
-
-  const avaliacoesSemanaAnterior =
-    estatisticas?.avaliacoes_semana_anterior ?? 0
-
-  const pontuacaoSemanaAtual =
-    estatisticas?.pontuacao_semana_atual ?? 0
-
-  const pontuacaoSemanaAnterior =
-    estatisticas?.pontuacao_semana_anterior ?? 0
-
-  const variacaoPontuacao =
-    pontuacaoSemanaAtual - pontuacaoSemanaAnterior
-
-  const crescimentoSemanal =
-    avaliacoesSemanaAnterior > 0
-      ? Math.round(
-          (
-            (avaliacoesSemanaAtual -
-              avaliacoesSemanaAnterior) /
-            avaliacoesSemanaAnterior
-          ) * 100
-        )
-      : 0
-
-  const barData =
-    estatisticas?.avaliacoes_ultimos_7_dias ?? []
-
-  const avaliacaoDepartamentos =
-    estatisticas?.avaliacao_por_departamento ?? []
-
-  const historicoPontuacao =
-    estatisticas?.historico_pontuacao ?? []
-
-  const satisfacaoPorMes =
-  estatisticas?.satisfacao_por_mes ?? []
-
-  const satisfacaoGeral =
-    estatisticas?.satisfacao_geral ?? 0
-    
-  const porcentagem = (quantidade: number) => {
-    if (totalAvaliacoesGeral === 0) return 0
-
-    return Math.round(
-      (quantidade / totalAvaliacoesGeral) * 100
-    )
-  }
-
-  const avaliacaoFuncionarios =
-    estatisticas?.avaliacao_por_funcionario ?? []
-
-  const contagemAvaliacoes = {
-    Excelente: quantidadeExcelente,
-    Bom: quantidadeBom,
-    Razoável: quantidadeRazoavel,
-    Ruim: quantidadeRuim,
-    Péssimo: quantidadePessimo,
-  }
-
-  const pieDataReal = [
-    {
-      name: 'Excelente',
-      value: contagemAvaliacoes.Excelente,
-      color: '#00B5CC',
-    },
-    {
-      name: 'Bom',
-      value: contagemAvaliacoes.Bom,
-      color: '#0eb374',
-    },
-    {
-      name: 'Razoável',
-      value: contagemAvaliacoes.Razoável,
-      color: '#EAB308',
-    },
-    {
-      name: 'Ruim',
-      value: contagemAvaliacoes.Ruim,
-      color: '#F97316',
-    },
-    {
-      name: 'Péssimo',
-      value: contagemAvaliacoes.Péssimo,
-      color: '#EF4444',
-    },
-  ]
-
-  const statCards = [
-    { label: 'Total de Avaliações', value: totalAvaliacoesGeral.toLocaleString('pt-BR'), sub: `${avaliacoesHoje} hoje`, color: '#00B5CC',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
-    },
-    { label: 'Excelente', value: quantidadeExcelente.toString(), sub: `${porcentagem(quantidadeExcelente)}% do total`, color: '#00B5CC',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    },
-    { label: 'Bom', value: quantidadeBom.toString(), sub: `${porcentagem(quantidadeBom)}% do total`, color: '#0eb374',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-    },
-    { label: 'Razoável', value: quantidadeRazoavel.toString(), sub: `${porcentagem(quantidadeRazoavel)}% do total`, color: '#EAB308',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
-    },
-    { label: 'Ruim + Péssimo', value: quantidadeRuimPessimo.toString(), sub: `${porcentagem(quantidadeRuimPessimo)}% do total`, color: '#EF4444',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-    },
-  ]
-
-  const kpiCards = [
-    {
-      label: 'Satisfação Geral',
-      value: `${pontuacaoMediaFormatada} / 5.0`,
-      trend: 'Todo o período',
-      pos: null,
-    },
-
-    {
-      label: 'Pontuação Média',
-      value: `${satisfacaoGeral.toFixed(2)}%`,
-      trend: 'Todo o período',
-      pos: null,
-    },
-
-    {
-      label: 'Avaliações de Hoje',
-      value: avaliacoesHoje.toString(),
-      trend: `${variacaoAvaliacoesHoje >= 0 ? '↑' : '↓'} ${Math.abs(variacaoAvaliacoesHoje)} vs ontem`,
-      pos: variacaoAvaliacoesHoje > 0 ? true : variacaoAvaliacoesHoje < 0 ? false : null,
-    },
-
-    {
-      label: 'Crescimento Semanal',
-      value: `${crescimentoSemanal >= 0 ? '+' : ''}${crescimentoSemanal}%`,
-      trend: `${avaliacoesSemanaAtual} avaliações nos últimos 7 dias`,
-      pos: crescimentoSemanal > 0 ? true : crescimentoSemanal < 0 ? false : null,
-    },
-
-  ]
-
-  const LoadingOverlay = () => {
-    if (!carregando && !exportando) return null
-
-    const mensagem = exportando
-      ? 'Exportando relatório...'
-      : 'Carregando avaliações...'
-
-    return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-        <div className="flex min-w-[220px] flex-col items-center justify-center rounded-2xl bg-white px-8 py-7 shadow-xl">
-
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#00B5CC]" />
-
-          <p className="mt-4 text-sm font-medium text-gray-700">
-            {mensagem}
-          </p>
-
-        </div>
-      </div>
-    )
-  }
-
-  const DepartamentoTick = ({
-    x = 0,
-    y = 0,
-    payload,
-  }: {
-    x?: number
-    y?: number
-    payload?: {
-      value: string
-    }
-  }) => {
-    const nome = payload?.value ?? ''
-
-    const partes = nome.split(' ')
-
-    if (partes.length <= 2) {
-      return (
-        <text
-          x={x}
-          y={y}
-          dy={14}
-          textAnchor="middle"
-          fill="#9ca3af"
-          fontSize={12}
-        >
-          {nome}
-        </text>
-      )
-    }
-
-    const meio = Math.ceil(partes.length / 2)
-
-    const linha1 = partes.slice(0, meio).join(' ')
-    const linha2 = partes.slice(meio).join(' ')
-
-    return (
-      <text
-        x={x}
-        y={y}
-        textAnchor="middle"
-        fill="#9ca3af"
-        fontSize={11}
-      >
-        <tspan
-          x={x}
-          dy={12}
-        >
-          {linha1}
-        </tspan>
-
-        <tspan
-          x={x}
-          dy={14}
-        >
-          {linha2}
-        </tspan>
-      </text>
-    )
-  }
-
-  const funcionariosFiltrados =
-    avaliacaoFuncionarios.filter((funcionario) =>
-      funcionario.funcionario
-        .toLowerCase()
-        .includes(funcionarioSearch.toLowerCase())
-    )
-
-  const funcionarioAtual =
-    funcionarioSelecionado ??
-    avaliacaoFuncionarios[indiceFuncionario] ??
-    null
-
-  const dadosFuncionario = funcionarioAtual
-    ? [
-        {
-          name: 'Excelente',
-          value: funcionarioAtual.excelente,
-          color: '#00B5CC',
-        },
-        {
-          name: 'Bom',
-          value: funcionarioAtual.bom,
-          color: '#0eb374',
-        },
-        {
-          name: 'Razoável',
-          value: funcionarioAtual.razoavel,
-          color: '#EAB308',
-        },
-        {
-          name: 'Ruim',
-          value: funcionarioAtual.ruim,
-          color: '#F97316',
-        },
-        {
-          name: 'Péssimo',
-          value: funcionarioAtual.pessimo,
-          color: '#EF4444',
-        },
-      ]
-    : []
-
-  const porcentagemFuncionario = (quantidade: number) => {
-    const total =
-      funcionarioAtual
-        ? funcionarioAtual.excelente +
-          funcionarioAtual.bom +
-          funcionarioAtual.razoavel +
-          funcionarioAtual.ruim +
-          funcionarioAtual.pessimo
-        : 0
-
-    if (total === 0) {
-      return 0
-    }
-
-    return Math.round(
-      (quantidade / total) * 100
-    )
-  }
-
-  useEffect(() => {
-    if (funcionarioSelecionado) {
-      return
-    }
-
-    if (avaliacaoFuncionarios.length === 0) {
-      return
-    }
-
-    const intervalo = window.setInterval(() => {
-      setIndiceFuncionario((atual) =>
-        (atual + 1) % avaliacaoFuncionarios.length
-      )
-    }, 3000)
-
-    return () => {
-      window.clearInterval(intervalo)
-    }
-  }, [
-    funcionarioSelecionado,
-    avaliacaoFuncionarios.length,
-  ])
-  
   return (
     <div className="relative min-h-screen">
-      <LoadingOverlay />
+      <DashboardLoadingOverlay carregando={carregando} exportando={exportando} />
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <NavBar onLogout={onLogout} subtitle="Menu Administrativo" usuario={usuario}/>
-        <main
-          ref={relatorioRef}
-          className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6"
-        >
-          {/* Page title + actions */}
+        <NavBar onLogout={onLogout} subtitle="Menu Administrativo" usuario={usuario} />
+        <main ref={relatorioRef} className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
@@ -591,575 +208,49 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: { onBack:
               <p className="text-gray-500 text-sm">Hospital da Visão</p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar"
-                onClick={() => carregarAvaliacoes(1)}
-                disabled={carregando || exportando}
-              >
+              <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar" onClick={() => void carregarAvaliacoes(1)} disabled={carregando || exportando}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                 Recarregar
               </button>
-              <button
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all nao-exportar disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{
-                  background: 'linear-gradient(135deg,#04c7e0,#0697aa)',
-                  boxShadow: '0 2px 8px #00b4cc59'
-                }}
-                onClick={exportarRelatorio}
-                disabled={carregando || exportando}
-              >
+              <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all nao-exportar disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }} onClick={exportarRelatorio} disabled={carregando || exportando}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>
                 Exportar Relatório
               </button>
             </div>
           </div>
 
-          {/* KPI row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpiCards.map(k => (
-              <div key={k.label} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
-                <div className="text-xs font-medium text-gray-500">{k.label}</div>
-                <div className="text-2xl font-bold text-gray-900 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{k.value}</div>
-                <div
-                  className={`text-xs mt-1 ${
-                    k.pos === true
-                      ? 'text-[#0eb374]'
-                      : k.pos === false
-                        ? 'text-red-400'
-                        : 'text-[#00B5CC]'
-                  }`}
-                >
-                  {k.trend}
-                </div>
-              </div>
-            ))}
-          </div>
+          <DashboardKpiCards cards={kpiCards} />
+          <DashboardStatCards cards={statCards} />
 
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {statCards.map(s => (
-              <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} color={s.color} icon={s.icon} />
-            ))}
-          </div>
-
-          {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Bar chart */}
-            <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Dia</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Últimos 7 dias</p>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={barData} barCategoryGap="35%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
-                  <Bar dataKey="quantidade" fill="#00B5CC" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Pie chart */}
-            <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 text-sm">Distribuição de Satisfação</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Sempre</p>
-              </div>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie data={pieDataReal} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
-                    {pieDataReal.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-col gap-1.5 mt-2">
-                {pieDataReal.map(d => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                      <span className="text-gray-600">{d.name}</span>
-                    </div>
-                    <span className="font-semibold text-gray-900">{porcentagem(d.value)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <AvaliacoesPorDiaChart data={barData} />
+            <DistribuicaoSatisfacaoChart data={pieDataReal} porcentagem={porcentagem} />
           </div>
 
-          {/* Line chart */}
-          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm">Histórico de Pontuação de Satisfação</h3>
-                <p className="text-xs text-gray-400 mt-0.5">tendência de 8 semanas</p>
-              </div>
-              <div className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#0eb374] bg-green-50">↑ Tendência de Crescimento</div>
-            </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={historicoPontuacao}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                <XAxis dataKey="semana" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip
-                  formatter={(value) => [
-                    Number(value).toFixed(2),
-                    'Pontuação',
-                  ]}
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    fontSize: 12,
-                  }}
-                />
-                <Line type="monotone" dataKey="pontuacao" stroke="#00B5CC" strokeWidth={2.5} dot={{ fill: '#00B5CC', r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <HistoricoPontuacaoChart data={historicoPontuacao} />
 
-          {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Bar chart */}
-            <div className="lg:col-span-2 bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Departamento</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Satisfação Geral</p>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={avaliacaoDepartamentos}
-                  barCategoryGap="35%"
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f3f4f6"
-                    vertical={false}
-                  />
-
-                  <XAxis
-                    dataKey="departamento"
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={55}
-                    tick={<DepartamentoTick />}
-                  />
-
-                  <YAxis
-                    domain={[1, 5]}
-                    ticks={[1, 2, 3, 4, 5]}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{
-                      fill: '#9ca3af',
-                      fontSize: 12,
-                    }}
-                  />
-
-                  <Tooltip
-                    formatter={(value) => [
-                      `${Number(value).toFixed(2)}`,
-                      'Satisfação Geral',
-                    ]}
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: 'none',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                      fontSize: 12,
-                    }}
-                  />
-
-                  <Bar
-                    dataKey="satisfacao"
-                    fill="#00B5CC"
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-
-            </div>
-
-            {/* Pie chart */}
-            <div
-              className="bg-white rounded-2xl p-5"
-              style={{
-                boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-                border: '1px solid #f3f4f6',
-              }}
-            >
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 text-sm">
-                  Avaliação por Funcionário
-                </h3>
-
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {funcionarioAtual?.funcionario ?? 'Nenhum funcionário'}
-                </p>
-
-                <div className="relative mt-3">
-                  <input
-                    value={funcionarioSearch}
-                    onChange={(e) => {
-                      setFuncionarioSearch(e.target.value)
-                      setFuncionarioSelecionado(null)
-                      setIndiceFuncionario(0)
-                      setMostrarSugestoesFuncionario(true)
-                    }}
-                    onFocus={() => {
-                      if (funcionarioSearch.trim() !== '') {
-                        setMostrarSugestoesFuncionario(true)
-                      }
-                    }}
-                    placeholder="Pesquisar funcionário..."
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
-                  />
-
-                  {mostrarSugestoesFuncionario &&
-                    funcionarioSearch.trim() !== '' && (
-                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                      {funcionariosFiltrados.length > 0 ? (
-                        funcionariosFiltrados.map((funcionario) => (
-                          <button
-                            key={funcionario.funcionario_id}
-                            type="button"
-                            onClick={() => {
-                              setFuncionarioSelecionado(funcionario)
-                              setFuncionarioSearch(funcionario.funcionario)
-                              setMostrarSugestoesFuncionario(false)
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                          >
-                            {funcionario.funcionario}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-4 py-3 text-sm text-gray-400">
-                          Nenhum funcionário encontrado
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie
-                    data={dadosFuncionario}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={72}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {dadosFuncionario.map((entry, i) => (
-                      <Cell
-                        key={i}
-                        fill={entry.color}
-                      />
-                    ))}
-                  </Pie>
-
-                  <Tooltip
-                    formatter={(value, name) => [
-                      `${Number(value)} avaliações`,
-                      name,
-                    ]}
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: 'none',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                      fontSize: 12,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-
-              <div className="flex flex-col gap-1.5 mt-2">
-                {dadosFuncionario.map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{
-                          background: item.color,
-                        }}
-                      />
-
-                      <span className="text-gray-600">
-                        {item.name}
-                      </span>
-                    </div>
-
-                    <span className="font-semibold text-gray-900">
-                      {porcentagemFuncionario(item.value)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <AvaliacaoPorDepartamentoChart data={avaliacaoDepartamentos} />
+            <AvaliacaoPorFuncionarioChart data={avaliacaoFuncionarios} />
           </div>
 
-          {/* Satisfação geral por mês */}
-          <div
-            className="bg-white rounded-2xl p-5"
-            style={{
-              boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-              border: '1px solid #f3f4f6',
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm">
-                  Satisfação Geral
-                </h3>
+          <SatisfacaoPorMesChart data={satisfacaoPorMes} />
 
-                <p className="text-xs text-gray-400 mt-0.5">
-                  tendência de 8 meses
-                </p>
-              </div>
-
-              <div className="w-2 h-2 rounded-full bg-[#00B5CC]" />
-            </div>
-
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={satisfacaoPorMes}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f3f4f6"
-                  vertical={false}
-                />
-
-                <XAxis
-                  dataKey="mes"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#9ca3af',
-                    fontSize: 12,
-                  }}
-                />
-
-                <YAxis
-                  domain={[0, 100]}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#9ca3af',
-                    fontSize: 12,
-                  }}
-                  tickFormatter={(value) => `${value}%`}
-                />
-
-                <Tooltip
-                  formatter={(value) => [
-                    `${Number(value).toFixed(2)}%`,
-                    'Satisfação',
-                  ]}
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    fontSize: 12,
-                  }}
-                />
-
-                <Line
-                  type="monotone"
-                  dataKey="satisfacao"
-                  stroke="#00B5CC"
-                  strokeWidth={2.5}
-                  dot={{
-                    fill: '#00B5CC',
-                    r: 4,
-                  }}
-                  activeDot={{
-                    r: 6,
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Recent evaluations table */}  
-            <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-
-              <div className="px-5 py-4 border-b border-gray-100">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-
-                  {/* Título */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">
-                      Avaliações Recentes
-                    </h3>
-
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Últimos Envios
-                    </p>
-                  </div>
-
-                  {/* Filtros à direita */}
-                  <div className="flex flex-wrap items-center gap-2">
-
-                    {/* Data inicial */}
-                    <input
-                      type="date"
-                      value={dataInicio}
-                      onChange={(e) => setDataInicio(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
-                    />
-
-                    {/* Data final */}
-                    <input
-                      type="date"
-                      value={dataFim}
-                      onChange={(e) => setDataFim(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
-                    />
-
-                    {/* Filtrar */}
-                    <button
-                      onClick={() => {
-                        setPagina(1)
-                        carregarAvaliacoes(1)
-                      }}
-                      className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-                      style={{ background: '#00B5CC' }}
-                    >
-                      Filtrar
-                    </button>
-
-                    {/* Limpar */}
-                    <button
-                      onClick={() => {
-                        setDataInicio('')
-                        setDataFim('')
-                        setPagina(1)
-
-                        setTimeout(() => {
-                          carregarAvaliacoes(1)
-                        }, 0)
-                      }}
-                      className="px-4 py-2 rounded-xl text-sm text-gray-600 border border-gray-200"
-                    >
-                      Limpar
-                    </button>
-
-                    {/* Pesquisa */}
-                    <div className="relative">
-                      <svg
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                      </svg>
-
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Pesquisar..."
-                        className="pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC] w-52"
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
-                    <th className="px-5 py-3 text-left">Data</th>
-                    <th className="px-5 py-3 text-left">Avaliação</th>
-                    <th className="px-5 py-3 text-left">Funcionário</th>
-                    <th className="px-5 py-3 text-left">Departamento</th>
-                    <th className="px-5 py-3 text-left">Terminal</th>
-                  </tr>
-                </thead>   
-                <tbody>
-                  {recentEvals.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-t border-gray-50 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">
-                        {row.date}
-                      </td>
-
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span
-                          className="font-semibold"
-                          style={{
-                            color: ratingColor(row.rating),
-                          }}
-                        >
-                          {row.rating}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-3.5 text-gray-600">
-                        {row.funcionario || '-'}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-gray-600">
-                        {row.departamento}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-gray-600">
-                        {row.terminal || '-'}
-                      </td>
-
-                    </tr>
-                  ))}
-                </tbody>
-                </table>
-
-                <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-                  <span className="text-sm text-gray-500">
-                    {totalAvaliacoes === 0
-                      ? 'Nenhuma avaliação encontrada'
-                      : `Página ${pagina} de ${totalPaginas} · ${totalAvaliacoes} avaliações`}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={pagina <= 1 || carregando}
-                      onClick={() => carregarAvaliacoes(pagina - 1)}
-                      className="px-3 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
-                    >
-                      Anterior
-                    </button>
-
-                    <button
-                      disabled={pagina >= totalPaginas || carregando}
-                      onClick={() => carregarAvaliacoes(pagina + 1)}
-                      className="px-3 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
-                    >
-                      Próxima
-                    </button>
-                  </div>
-                </div>
-            </div>
-          </div>
+          <AvaliacoesRecentesTable
+            avaliacoes={avaliacoes}
+            search={search}
+            setSearch={setSearch}
+            dataInicio={dataInicio}
+            setDataInicio={setDataInicio}
+            dataFim={dataFim}
+            setDataFim={setDataFim}
+            pagina={pagina}
+            setPagina={setPagina}
+            totalPaginas={totalPaginas}
+            totalAvaliacoes={totalAvaliacoes}
+            carregando={carregando}
+            carregarAvaliacoes={carregarAvaliacoes}
+          />
         </main>
       </div>
     </div>
