@@ -17,9 +17,14 @@ export default function ManagementTabs({
         onClick={() => setAba('funcionarios')}
         className={`px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'funcionarios'
-            ? 'bg-[#00B5CC] text-white'
+            ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
         }`}
+        style={
+          aba === 'funcionarios'
+            ? { background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }
+            : {}
+        }
       >
         Funcionários
       </button>
@@ -29,9 +34,14 @@ export default function ManagementTabs({
         onClick={() => setAba('terminais')}
         className={`px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'terminais'
-            ? 'bg-[#00B5CC] text-white'
+            ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
         }`}
+        style={
+          aba === 'terminais'
+            ? { background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }
+            : {}
+        }
       >
         Terminais
       </button>
@@ -41,9 +51,14 @@ export default function ManagementTabs({
         onClick={() => setAba('departamentos')}
         className={`px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'departamentos'
-            ? 'bg-[#00B5CC] text-white'
+            ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
         }`}
+        style={
+          aba === 'departamentos'
+            ? { background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }
+            : {}
+        }
       >
         Departamentos
       </button>
@@ -53,9 +68,14 @@ export default function ManagementTabs({
         onClick={() => setAba('usuarios')}
         className={`px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'usuarios'
-            ? 'bg-[#00B5CC] text-white'
+            ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
         }`}
+        style={
+          aba === 'usuarios'
+            ? { background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }
+            : {}
+        }
       >
         Usuários
       </button>

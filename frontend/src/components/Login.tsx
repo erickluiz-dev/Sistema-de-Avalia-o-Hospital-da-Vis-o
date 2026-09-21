@@ -83,9 +83,9 @@ function LoginScreen({ onLogin, onForgotPassword, }: LoginScreenProps) {
 
       {/* Right login card */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-6 min-h-screen lg:min-h-0">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md ">
           <div
-            className="bg-white rounded-3xl p-8 sm:p-10"
+            className="bg-white rounded-3xl min-h-[460px] p-8 sm:p-10"
             style={{
               boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
             }}
@@ -203,9 +203,7 @@ function LoginScreen({ onLogin, onForgotPassword, }: LoginScreenProps) {
                 onClick={handleLogin}
                 disabled={loginLoading}
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{
-                  background: '#00B5CC',
-                }}
+                style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
               >
                 {loginLoading ? 'Entrando...' : 'Entrar'}
               </button>

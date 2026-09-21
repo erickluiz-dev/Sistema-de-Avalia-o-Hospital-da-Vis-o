@@ -192,7 +192,7 @@ export default function SurveyScreen({
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 max-w-xl mx-auto leading-tight"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Como você avalia o nosso Atendimento?
+            Como você avalia o meu Atendimento?
           </h1>
         </div>
 

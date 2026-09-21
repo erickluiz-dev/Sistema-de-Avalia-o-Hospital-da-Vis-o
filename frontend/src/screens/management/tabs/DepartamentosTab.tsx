@@ -27,9 +27,7 @@ export default function DepartamentosTab({
           type="button"
           onClick={onNovoDepartamento}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{
-            background: '#00B5CC',
-          }}
+          style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           <span className="text-lg leading-none">+</span>
           Departamento

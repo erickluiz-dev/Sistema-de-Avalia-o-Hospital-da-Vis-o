@@ -78,9 +78,7 @@ export default function FuncionariosTab({
           type="button"
           onClick={onNovoFuncionario}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{
-            background: '#00B5CC',
-          }}
+          style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           <span className="text-lg leading-none">+</span>
           Funcionário
@@ -251,9 +249,7 @@ export default function FuncionariosTab({
                         ] === ''
                       }
                       className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{
-                        background: '#00B5CC',
-                      }}
+                      style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
                     >
                       {aplicandoFuncionario ===
                       funcionario.id

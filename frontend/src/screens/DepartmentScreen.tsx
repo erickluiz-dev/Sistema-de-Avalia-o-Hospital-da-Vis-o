@@ -227,10 +227,8 @@ function DepartmentScreen({
             carregando
           }
           onClick={handleStart}
-          className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-50"
-          style={{
-            background: '#00B5CC',
-          }}
+          className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-55"
+          style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           Começar Avaliação
         </button>

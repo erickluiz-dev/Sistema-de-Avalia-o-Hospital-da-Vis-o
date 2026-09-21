@@ -245,9 +245,7 @@ export default function ResetPasswordScreen({
             onClick={handleSubmit}
             disabled={loading}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{
-              background: '#00B5CC',
-            }}
+            style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
           >
             {loading
               ? 'Redefinindo...'

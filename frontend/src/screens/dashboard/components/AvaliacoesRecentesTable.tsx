@@ -57,7 +57,7 @@ export default function AvaliacoesRecentesTable({
                 void carregarAvaliacoes(1)
               }}
               className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-              style={{ background: '#00B5CC' }}
+              style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
             >
               Filtrar
             </button>

@@ -7,6 +7,78 @@ type ForgotPasswordScreenProps = {
   onBack: () => void
 }
 
+const FORGOT_PASSWORD_FLOATING_STYLE = `
+  @keyframes forgot-float-1 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(55px, -35px, 0);
+    }
+    50% {
+      transform: translate3d(-30px, -55px, 0);
+    }
+    75% {
+      transform: translate3d(-55px, 20px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes forgot-float-2 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(-45px, 35px, 0);
+    }
+    50% {
+      transform: translate3d(35px, 60px, 0);
+    }
+    75% {
+      transform: translate3d(60px, -25px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes forgot-float-3 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(50px, 40px, 0);
+    }
+    50% {
+      transform: translate3d(-50px, 20px, 0);
+    }
+    75% {
+      transform: translate3d(-30px, -50px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .forgot-floating-circle-1 {
+    animation: forgot-float-1 14s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .forgot-floating-circle-2 {
+    animation: forgot-float-2 18s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .forgot-floating-circle-3 {
+    animation: forgot-float-3 16s ease-in-out infinite;
+    will-change: transform;
+  }
+
+`
+
 export default function ForgotPasswordScreen({
   onBack,
 }: ForgotPasswordScreenProps) {
@@ -69,6 +141,28 @@ export default function ForgotPasswordScreen({
             'linear-gradient(145deg, #00cca0 0%, #00B5CC 45%, #009ccc 100%)',
         }}
       >
+        <style>{FORGOT_PASSWORD_FLOATING_STYLE}</style>
+
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            aria-hidden="true"
+            className="forgot-floating-circle-1 absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10"
+            style={{ background: 'white' }}
+          />
+
+          <div
+            aria-hidden="true"
+            className="forgot-floating-circle-2 absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-10"
+            style={{ background: 'white' }}
+          />
+
+          <div
+            aria-hidden="true"
+            className="forgot-floating-circle-3 absolute -bottom-16 right-1/4 w-80 h-80 rounded-full opacity-10"
+            style={{ background: 'white' }}
+          />
+        </div>
+
         <div className="relative z-10">
           <Logo size="lg" />
 
@@ -110,9 +204,9 @@ export default function ForgotPasswordScreen({
       </div>
 
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-6 min-h-screen lg:min-h-0">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <div
-            className="bg-white rounded-3xl p-8 sm:p-10"
+            className="bg-white rounded-3xl min-h-[450px] p-8 sm:p-10"
             style={{
               boxShadow:
                 '0 8px 40px rgba(0,0,0,0.10)',
@@ -194,9 +288,7 @@ export default function ForgotPasswordScreen({
                 onClick={handleSubmit}
                 disabled={loading}
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{
-                  background: '#00B5CC',
-                }}
+                style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
               >
                 {loading
                   ? 'Enviando...'
@@ -209,4 +301,3 @@ export default function ForgotPasswordScreen({
     </div>
   )
 }
-

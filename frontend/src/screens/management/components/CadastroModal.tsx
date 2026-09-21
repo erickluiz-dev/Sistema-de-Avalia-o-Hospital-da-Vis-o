@@ -380,9 +380,7 @@ export default function CadastroModal({
             onClick={salvarCadastro}
             disabled={salvando}
             className="flex-1 py-3 rounded-xl text-white text-sm font-semibold disabled:opacity-50"
-            style={{
-              background: '#00B5CC',
-            }}
+            style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
           >
             {salvando
               ? 'Salvando...'

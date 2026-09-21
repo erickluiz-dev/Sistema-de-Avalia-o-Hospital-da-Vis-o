@@ -8,6 +8,78 @@ type LoginSlide = {
   illustration: ReactNode
 }
 
+const LOGIN_FLOATING_STYLE = `
+  @keyframes login-float-1 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(60px, -35px, 0);
+    }
+    50% {
+      transform: translate3d(-30px, -60px, 0);
+    }
+    75% {
+      transform: translate3d(-60px, 20px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes login-float-2 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(-45px, 40px, 0);
+    }
+    50% {
+      transform: translate3d(35px, 65px, 0);
+    }
+    75% {
+      transform: translate3d(65px, -25px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes login-float-3 {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    25% {
+      transform: translate3d(50px, 45px, 0);
+    }
+    50% {
+      transform: translate3d(-55px, 20px, 0);
+    }
+    75% {
+      transform: translate3d(-30px, -55px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .login-floating-circle-1 {
+    animation: login-float-1 14s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .login-floating-circle-2 {
+    animation: login-float-2 18s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .login-floating-circle-3 {
+    animation: login-float-3 16s ease-in-out infinite;
+    will-change: transform;
+  }
+
+`
+
 const LOGIN_SLIDES: LoginSlide[] = [
   {
     title: 'Meça o que importa',
@@ -120,19 +192,27 @@ export default function LoginPresentation() {
           'linear-gradient(145deg, #00cca0 0%, #00B5CC 45%, #009ccc 100%)',
       }}
     >
+      <style>{LOGIN_FLOATING_STYLE}</style>
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10"
+          aria-hidden="true"
+          className="login-floating-circle-1 absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10"
           style={{ background: 'white' }}
         />
+
         <div
-          className="absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-10"
+          aria-hidden="true"
+          className="login-floating-circle-2 absolute top-1/3 -left-16 w-64 h-64 rounded-full opacity-10"
           style={{ background: 'white' }}
         />
+
         <div
-          className="absolute -bottom-16 right-1/4 w-80 h-80 rounded-full opacity-10"
+          aria-hidden="true"
+          className="login-floating-circle-3 absolute -bottom-16 right-1/4 w-80 h-80 rounded-full opacity-10"
           style={{ background: 'white' }}
         />
+
         <div
           className="absolute inset-0"
           style={{
@@ -195,7 +275,11 @@ export default function LoginPresentation() {
         </div>
       </div>
 
-      <div className="relative z-10 flex gap-2" role="tablist" aria-label="Destaques do sistema">
+      <div
+        className="relative z-10 flex gap-2"
+        role="tablist"
+        aria-label="Destaques do sistema"
+      >
         {LOGIN_SLIDES.map((item, index) => (
           <button
             key={item.title}
@@ -215,4 +299,4 @@ export default function LoginPresentation() {
       </div>
     </div>
   )
-}
+} 
