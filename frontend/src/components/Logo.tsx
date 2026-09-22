@@ -8,8 +8,8 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
         style={{ 
           width: s, 
           height: s, 
-          background: '#fcfcfc', 
-          borderRadius: 10, 
+          background: 'white', 
+          borderRadius: 3, 
         }} 
         className="flex items-center justify-center shrink-0"
       > 

@@ -143,8 +143,7 @@ function DepartmentScreen({
         </h1>
 
         <p className="text-gray-500 text-sm text-center mt-2 mb-8">
-          Selecione o departamento que deseja
-          avaliar.
+          Selecione o departamento que deseja avaliar.
         </p>
 
         {/* Departamento */}

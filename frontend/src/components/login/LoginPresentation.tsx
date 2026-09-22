@@ -94,6 +94,9 @@ const LOGIN_SLIDES: LoginSlide[] = [
         <circle cx="80" cy="48" r="28" fill="rgba(255,255,255,0.25)" />
         <circle cx="80" cy="44" r="14" fill="rgba(255,255,255,0.4)" />
         <path d="M68 66 Q80 78 92 66" stroke="rgba(255,255,255,0.6)" strokeWidth="3" strokeLinecap="round" fill="none" />
+        {[40, 60, 80, 100, 120].map((x, i) => (
+          <text key={i} x={x - 6} y="86" fontSize="12" fill={i < 4 ? 'rgba(255,220,50,0.9)' : 'rgba(255,255,255,0.3)'}>★</text>
+        ))}
       </svg>
     ),
   },
