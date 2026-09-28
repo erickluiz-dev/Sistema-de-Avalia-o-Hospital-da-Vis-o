@@ -109,3 +109,77 @@ func (h *TerminalHandler) Listar(
 
 	json.NewEncoder(w).Encode(terminais)
 }
+
+func (h *TerminalHandler) VerificarFuncionario(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodGet {
+		http.Error(
+			w,
+			"Método não permitido",
+			http.StatusMethodNotAllowed,
+		)
+
+		return
+	}
+
+	departamentoID := r.URL.Query().Get("departamento_id")
+	terminalID := r.URL.Query().Get("terminal_id")
+
+	if departamentoID == "" || terminalID == "" {
+		http.Error(
+			w,
+			"departamento_id e terminal_id são obrigatórios",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	var disponivel bool
+
+	err := h.DB.QueryRow(
+		r.Context(),
+		`
+		SELECT EXISTS (
+			SELECT 1
+			FROM funcionarios f
+			INNER JOIN terminais t
+				ON t.id = f.terminal_id
+			WHERE f.ativo = TRUE
+			  AND t.ativo = TRUE
+			  AND f.terminal_id = $1
+			  AND t.departamento_id = $2
+		)
+		`,
+		terminalID,
+		departamentoID,
+	).Scan(&disponivel)
+
+	if err != nil {
+		log.Println(
+			"Erro ao verificar funcionário:",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Erro ao verificar disponibilidade",
+			http.StatusInternalServerError,
+		)
+
+		return
+	}
+
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	json.NewEncoder(w).Encode(
+		map[string]bool{
+			"disponivel": disponivel,
+		},
+	)
+}

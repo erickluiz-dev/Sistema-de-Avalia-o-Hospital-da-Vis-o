@@ -35,6 +35,12 @@ function DepartmentScreen({
   const [loadingTerminais, setLoadingTerminais] =
     useState(true)
 
+  const [loadingFuncionarios, setLoadingFuncionarios] =
+  useState(false)
+
+  const [possuiFuncionario, setPossuiFuncionario] =
+    useState(false)
+
   useEffect(() => {
     async function carregarDepartamentos() {
       try {
@@ -101,6 +107,48 @@ function DepartmentScreen({
         terminal.departamento_id ===
         Number(departamentoSelecionado),
     )
+  
+  const verificarFuncionario = async (
+    departamentoId: string,
+    terminalId: string,
+  ) => {
+    if (!departamentoId || !terminalId) {
+      setPossuiFuncionario(false)
+      return
+    }
+
+    try {
+      setLoadingFuncionarios(true)
+
+      const response = await apiFetch(
+        `/funcionarios/disponibilidade?departamento_id=${Number(
+          departamentoId,
+        )}&terminal_id=${Number(terminalId)}`,
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          'Erro ao verificar funcionário',
+        )
+      }
+
+      const data: { disponivel: boolean } =
+        await response.json()
+
+      setPossuiFuncionario(data.disponivel)
+    } catch (error) {
+      console.error(
+        'Erro ao verificar funcionário:',
+        error,
+      )
+
+      // Por segurança, se não conseguirmos verificar,
+      // não permitimos iniciar a avaliação.
+      setPossuiFuncionario(false)
+    } finally {
+      setLoadingFuncionarios(false)
+    }
+  }
 
   const handleDepartamentoChange = (
     valor: string,
@@ -110,12 +158,17 @@ function DepartmentScreen({
     // O terminal anterior não pode permanecer
     // selecionado quando o departamento mudar.
     setTerminalSelecionado('')
+
+    // A combinação anterior deixa de ser válida.
+    setPossuiFuncionario(false)
   }
 
   const handleStart = () => {
     if (
       !departamentoSelecionado ||
-      !terminalSelecionado
+      !terminalSelecionado ||
+      !possuiFuncionario ||
+      loadingFuncionarios
     ) {
       return
     }
@@ -184,11 +237,21 @@ function DepartmentScreen({
 
         <select
           value={terminalSelecionado}
-          onChange={(e) =>
-            setTerminalSelecionado(
-              e.target.value,
+          onChange={(e) => {
+            const valor = e.target.value
+
+            setTerminalSelecionado(valor)
+
+            if (!valor) {
+              setPossuiFuncionario(false)
+              return
+            }
+
+            verificarFuncionario(
+              departamentoSelecionado,
+              valor,
             )
-          }
+          }}
           disabled={
             !departamentoSelecionado ||
             loadingTerminais
@@ -223,14 +286,31 @@ function DepartmentScreen({
           disabled={
             !departamentoSelecionado ||
             !terminalSelecionado ||
-            carregando
+            !possuiFuncionario ||
+            carregando ||
+            loadingFuncionarios
           }
           onClick={handleStart}
-          className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-55"
+          className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           Começar Avaliação
         </button>
+
+        {departamentoSelecionado &&
+          terminalSelecionado &&
+          !loadingFuncionarios &&
+          !possuiFuncionario && (
+            <p className="mt-3 text-center text-xs text-gray-500">
+              Não existe funcionário ativo vinculado a este
+              departamento e terminal.
+            </p>
+          )}
+        {loadingFuncionarios && (
+          <p className="mt-3 text-center text-xs text-gray-400">
+            Verificando disponibilidade...
+          </p>
+        )}
 
         {/* Voltar */}
         <button

@@ -169,9 +169,7 @@ export function useManagementData() {
 
       await carregarDados()
 
-      alert(
-        'Terminal atualizado com sucesso.',
-      )
+      
     } catch (error) {
       console.error(
         'Erro ao aplicar terminal:',

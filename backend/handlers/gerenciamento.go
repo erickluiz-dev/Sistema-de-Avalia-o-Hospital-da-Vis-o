@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"strconv"
+	"strings"
 
 	"backend/middleware"
 	"backend/models"
@@ -19,9 +19,9 @@ import (
 )
 
 type GerenciamentoHandler struct {
-	DB *pgxpool.Pool
+	DB               *pgxpool.Pool
 	ClientIPResolver *middleware.ClientIPResolver
-	AuditoriaService *services.AuditoriaService	
+	AuditoriaService *services.AuditoriaService
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
@@ -756,17 +756,26 @@ func (h *GerenciamentoHandler) VincularTerminal(
 
 	idTexto := strings.TrimPrefix(
 		r.URL.Path,
-		"/admin/funcionarios/{id}",
+		"/admin/funcionarios/",
 	)
 
-	idTexto = strings.TrimSuffix(
-		idTexto,
-		"/terminal",
+	partes := strings.Split(
+		strings.TrimSuffix(idTexto, "/terminal"),
+		"/",
 	)
+
+	if len(partes) != 1 || partes[0] == "" {
+		http.Error(
+			w,
+			"ID do funcionário inválido",
+			http.StatusBadRequest,
+		)
+		return
+	}
 
 	var funcionarioID int64
 
-	if _, err := fmt.Sscan(idTexto, &funcionarioID); err != nil || funcionarioID <= 0 {
+	if _, err := fmt.Sscan(partes[0], &funcionarioID); err != nil || funcionarioID <= 0 {
 		http.Error(
 			w,
 			"ID do funcionário inválido",

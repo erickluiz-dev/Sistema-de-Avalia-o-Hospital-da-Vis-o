@@ -100,7 +100,7 @@ export type SatisfacaoPorMes = {
 export type AvaliacaoPorDepartamento = {
   departamento_id: number
   departamento: string
-  pontuacao: number
+  satisfacao: number
 }
 
 export type AvaliacaoPorFuncionario = {

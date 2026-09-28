@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
+import * as XLSX from 'xlsx'
 
 import NavBar from '../components/NavBar'
-import { ratingColor } from '../utils/ratings'
 import type { Usuario } from '../types'
 
 import AvaliacaoPorDepartamentoChart from './dashboard/components/AvaliacaoPorDepartamentoChart'
@@ -120,8 +120,8 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
   ]
 
   const kpiCards = [
-    { label: 'Satisfação Geral', value: `${pontuacaoMediaFormatada} / 5.0`, trend: 'Todo o período', pos: null },
-    { label: 'Pontuação Média', value: `${satisfacaoGeral.toFixed(2)}%`, trend: 'Todo o período', pos: null },
+    { label: 'Pontuação Média', value: `${pontuacaoMediaFormatada} / 5.0`, trend: 'Todo o período', pos: null },
+    { label: 'Satisfação Geral', value: `${satisfacaoGeral.toFixed(2)}%`, trend: 'Todo o período', pos: null },
     {
       label: 'Avaliações de Hoje',
       value: avaliacoesHoje.toString(),
@@ -136,6 +136,150 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
     },
   ]
 
+  const exportarExcel = () => {
+
+    const funcionarios = avaliacaoFuncionarios.map((funcionario) => {
+      const total =
+        funcionario.excelente +
+        funcionario.bom +
+        funcionario.razoavel +
+        funcionario.ruim +
+        funcionario.pessimo
+
+      const pontuacaoMedia =
+        total > 0
+          ? (
+              funcionario.excelente * 5 +
+              funcionario.bom * 4 +
+              funcionario.razoavel * 3 +
+              funcionario.ruim * 2 +
+              funcionario.pessimo * 1
+            ) / total
+          : 0
+
+      return {
+        funcionario: funcionario.funcionario,
+        satisfacao: pontuacaoMedia * 20,
+      }
+    })
+
+    const departamentos = avaliacaoDepartamentos.map((departamento) => {
+      const satisfacao = Number(departamento.satisfacao)
+
+      return {
+        departamento: departamento.departamento,
+        satisfacao:
+          Number.isFinite(satisfacao) && satisfacao > 0
+            ? satisfacao * 20
+            : '',
+      }
+    })
+    const maiorQuantidade = Math.max(
+      funcionarios.length,
+      departamentos.length,
+      1,
+    )
+
+    const dados: (string | number)[][] = [
+      [
+        'Funcionário',
+        'Satisfação Geral',
+        '',
+        'Departamento',
+        'Satisfação Geral',
+        'Satisfação Geral da Hospital',
+      ],
+    ]
+
+    for (let i = 0; i < maiorQuantidade; i += 1) {
+      dados.push([
+        funcionarios[i]?.funcionario ?? '',
+        funcionarios[i]?.satisfacao ?? '',
+        '',
+        departamentos[i]?.departamento ?? '',
+        departamentos[i]?.satisfacao ?? '',
+        i === 0 ? satisfacaoGeral : '',
+      ])
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet(dados)
+
+    worksheet['!cols'] = [
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 4 },
+      { wch: 32 },
+      { wch: 18 },
+      { wch: 28 },
+    ]
+
+    for (let linha = 2; linha <= dados.length; linha += 1) {
+      ;['B', 'E', 'F'].forEach((coluna) => {
+        const celula = worksheet[`${coluna}${linha}`]
+
+        if (celula && typeof celula.v === 'number') {
+          celula.z = '0.00'
+        }
+      })
+    }
+
+    ;['A1', 'B1', 'D1', 'E1', 'F1'].forEach((celula) => {
+      if (worksheet[celula]) {
+        worksheet[celula].s = {
+          font: {
+            bold: true,
+          },
+          alignment: {
+            horizontal: 'center',
+            vertical: 'center',
+          },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' },
+          },
+        }
+      }
+    })
+
+    for (let linha = 2; linha <= dados.length; linha += 1) {
+      ;['A', 'B', 'D', 'E', 'F'].forEach((coluna) => {
+        const celula = worksheet[`${coluna}${linha}`]
+
+        if (celula) {
+          celula.s = {
+            alignment: {
+              vertical: 'center',
+            },
+            border: {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' },
+            },
+          }
+        }
+      })
+    }
+
+    worksheet['!rows'] = [
+      { hpt: 24 },
+    ]
+
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      'Satisfação',
+    )
+
+    XLSX.writeFile(
+      workbook,
+      'relatorio-avaliacoes.xlsx',
+    )
+  }
   const exportarRelatorio = async () => {
     if (!relatorioRef.current) return
 
@@ -180,6 +324,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
       link.download = 'relatorio-avaliacoes.png'
       link.href = imagem
       link.click()
+      exportarExcel()
     } catch (error) {
       console.error('Erro ao exportar relatório:', error)
 
@@ -231,26 +376,31 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <AvaliacaoPorDepartamentoChart data={avaliacaoDepartamentos} />
-            <AvaliacaoPorFuncionarioChart data={avaliacaoFuncionarios} />
+
+            <div className="nao-exportar">
+              <AvaliacaoPorFuncionarioChart data={avaliacaoFuncionarios} />
+            </div>
           </div>
 
           <SatisfacaoPorMesChart data={satisfacaoPorMes} />
 
-          <AvaliacoesRecentesTable
-            avaliacoes={avaliacoes}
-            search={search}
-            setSearch={setSearch}
-            dataInicio={dataInicio}
-            setDataInicio={setDataInicio}
-            dataFim={dataFim}
-            setDataFim={setDataFim}
-            pagina={pagina}
-            setPagina={setPagina}
-            totalPaginas={totalPaginas}
-            totalAvaliacoes={totalAvaliacoes}
-            carregando={carregando}
-            carregarAvaliacoes={carregarAvaliacoes}
-          />
+          <div className="nao-exportar">
+            <AvaliacoesRecentesTable
+              avaliacoes={avaliacoes}
+              search={search}
+              setSearch={setSearch}
+              dataInicio={dataInicio}
+              setDataInicio={setDataInicio}
+              dataFim={dataFim}
+              setDataFim={setDataFim}
+              pagina={pagina}
+              setPagina={setPagina}
+              totalPaginas={totalPaginas}
+              totalAvaliacoes={totalAvaliacoes}
+              carregando={carregando}
+              carregarAvaliacoes={carregarAvaliacoes}
+            />
+          </div>
         </main>
       </div>
     </div>

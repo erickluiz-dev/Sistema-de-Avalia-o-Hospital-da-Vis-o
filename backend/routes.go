@@ -55,6 +55,13 @@ func configurarRotas(
 		terminalHandler.Listar,
 	)
 
+	// Verifica se existe funcionário ativo
+	// vinculado ao departamento e terminal selecionados.
+	mux.HandleFunc(
+		"/funcionarios/disponibilidade",
+		terminalHandler.VerificarFuncionario,
+	)
+
 	// Criar avaliação
 	//
 	// Esta rota permanece pública porque o usuário
@@ -85,7 +92,6 @@ func configurarRotas(
 			}
 		},
 	)
-	
 
 	// ============================================================
 	// ROTAS AUTENTICADAS
@@ -173,6 +179,17 @@ func configurarRotas(
 			authHandler.Authenticate,
 			middleware.ExigirAdmin(
 				http.HandlerFunc(gerenciamentoHandler.Funcionarios),
+			),
+		),
+	)
+
+	// Vincular/desvincular terminal de funcionário
+	mux.Handle(
+		"/admin/funcionarios/{id}/terminal",
+		middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			middleware.ExigirAdmin(
+				http.HandlerFunc(gerenciamentoHandler.VincularTerminal),
 			),
 		),
 	)
