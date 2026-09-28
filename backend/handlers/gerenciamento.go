@@ -285,6 +285,83 @@ func (h *GerenciamentoHandler) CriarFuncionario(
 		return
 	}
 
+	// Se houver terminal informado, ele precisa existir e estar ativo.
+	if req.TerminalID > 0 {
+
+		var terminalExiste bool
+
+		err := h.DB.QueryRow(
+			r.Context(),
+			`
+			SELECT EXISTS(
+				SELECT 1
+				FROM terminais
+				WHERE id = $1
+				AND ativo = TRUE
+			)
+			`,
+			req.TerminalID,
+		).Scan(&terminalExiste)
+
+		if err != nil {
+			log.Println("Erro ao validar terminal:", err)
+
+			http.Error(
+				w,
+				"Erro interno do servidor",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		if !terminalExiste {
+			http.Error(
+				w,
+				"Terminal não encontrado ou inativo",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// Verifica se já existe funcionário ativo usando o terminal.
+		var funcionarioExistenteID int64
+
+		err = h.DB.QueryRow(
+			r.Context(),
+			`
+			SELECT id
+			FROM funcionarios
+			WHERE terminal_id = $1
+			AND ativo = TRUE
+			LIMIT 1
+			`,
+			req.TerminalID,
+		).Scan(&funcionarioExistenteID)
+
+		if err == nil {
+			http.Error(
+				w,
+				"Este terminal já está vinculado a outro funcionário ativo",
+				http.StatusConflict,
+			)
+			return
+		}
+
+		if err != pgx.ErrNoRows {
+			log.Println(
+				"Erro ao verificar vínculo do terminal:",
+				err,
+			)
+
+			http.Error(
+				w,
+				"Erro interno do servidor",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+	}
+
 	var funcionario models.FuncionarioGerenciamento
 
 	err := h.DB.QueryRow(
@@ -308,7 +385,11 @@ func (h *GerenciamentoHandler) CriarFuncionario(
 	)
 
 	if err != nil {
-		log.Println("Erro ao criar funcionário:", err)
+		log.Println(
+			"Erro ao criar funcionário:",
+			err,
+		)
+
 		http.Error(
 			w,
 			"Erro ao criar funcionário",
@@ -317,7 +398,11 @@ func (h *GerenciamentoHandler) CriarFuncionario(
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(funcionario)
@@ -775,7 +860,8 @@ func (h *GerenciamentoHandler) VincularTerminal(
 
 	var funcionarioID int64
 
-	if _, err := fmt.Sscan(partes[0], &funcionarioID); err != nil || funcionarioID <= 0 {
+	if _, err := fmt.Sscan(partes[0], &funcionarioID); err != nil ||
+		funcionarioID <= 0 {
 		http.Error(
 			w,
 			"ID do funcionário inválido",
@@ -784,8 +870,14 @@ func (h *GerenciamentoHandler) VincularTerminal(
 		return
 	}
 
+	/*
+		Se terminal_id for nil, significa que o administrador
+		está removendo o terminal do funcionário.
+	*/
 	if req.TerminalID != nil {
-		var existe bool
+
+		// 1. Verifica se o terminal existe e está ativo.
+		var terminalExiste bool
 
 		err := h.DB.QueryRow(
 			r.Context(),
@@ -794,10 +886,11 @@ func (h *GerenciamentoHandler) VincularTerminal(
 				SELECT 1
 				FROM terminais
 				WHERE id = $1
+				  AND ativo = TRUE
 			)
 			`,
 			*req.TerminalID,
-		).Scan(&existe)
+		).Scan(&terminalExiste)
 
 		if err != nil {
 			log.Println(
@@ -810,21 +903,60 @@ func (h *GerenciamentoHandler) VincularTerminal(
 				"Erro interno do servidor",
 				http.StatusInternalServerError,
 			)
-
 			return
 		}
 
-		if !existe {
+		if !terminalExiste {
 			http.Error(
 				w,
-				"Terminal não encontrado",
+				"Terminal não encontrado ou inativo",
 				http.StatusBadRequest,
 			)
+			return
+		}
 
+		// 2. Verifica se o terminal já pertence a outro funcionário ativo.
+		var funcionarioExistenteID int64
+
+		err = h.DB.QueryRow(
+			r.Context(),
+			`
+			SELECT id
+			FROM funcionarios
+			WHERE terminal_id = $1
+			  AND ativo = TRUE
+			  AND id <> $2
+			LIMIT 1
+			`,
+			*req.TerminalID,
+			funcionarioID,
+		).Scan(&funcionarioExistenteID)
+
+		if err == nil {
+			http.Error(
+				w,
+				"Este terminal já está vinculado a outro funcionário ativo",
+				http.StatusConflict,
+			)
+			return
+		}
+
+		if err != pgx.ErrNoRows {
+			log.Println(
+				"Erro ao verificar vínculo do terminal:",
+				err,
+			)
+
+			http.Error(
+				w,
+				"Erro interno do servidor",
+				http.StatusInternalServerError,
+			)
 			return
 		}
 	}
 
+	// 3. Realiza o vínculo ou desvincula o terminal.
 	var funcionario models.FuncionarioGerenciamento
 
 	err := h.DB.QueryRow(
@@ -855,7 +987,6 @@ func (h *GerenciamentoHandler) VincularTerminal(
 			"Funcionário não encontrado",
 			http.StatusNotFound,
 		)
-
 		return
 	}
 
