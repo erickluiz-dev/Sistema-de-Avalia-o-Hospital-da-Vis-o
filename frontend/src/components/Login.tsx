@@ -191,7 +191,7 @@ function LoginScreen({ onLogin, onForgotPassword, }: LoginScreenProps) {
                 <button
                   type="button"
                   onClick={onForgotPassword}
-                  className="text-sm text-[#00B5CC] hover:text-blue-700 font-medium transition-colors cursor-pointer"
+                  className="text-sm text-[#00B5CC] hover:text-[#006f7e] font-medium transition-colors cursor-pointer" 
                 >
                   Esqueci a senha?
                 </button>
