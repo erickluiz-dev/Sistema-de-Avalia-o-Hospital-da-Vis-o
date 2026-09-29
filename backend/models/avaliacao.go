@@ -18,6 +18,7 @@ type NovaAvaliacaoRequest struct {
 	Avaliacao      string `json:"avaliacao"`
 	DepartamentoID int64  `json:"departamento_id"`
 	TerminalID     int64  `json:"terminal_id"`
+	Comentario     string `json:"comentario"`
 }
 
 type AvaliacoesPaginadas struct {

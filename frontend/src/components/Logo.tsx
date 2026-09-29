@@ -5,12 +5,7 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   return ( 
     <div className="flex items-center gap-2.5"> 
       <div 
-        style={{ 
-          width: s, 
-          height: s, 
-          background: 'white', 
-          borderRadius: 3, 
-        }} 
+        
         className="flex items-center justify-center shrink-0"
       > 
         <div  

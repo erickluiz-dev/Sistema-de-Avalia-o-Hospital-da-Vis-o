@@ -77,6 +77,18 @@ func (h *AvaliacaoHandler) Criar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validação do comentário
+	req.Comentario = strings.TrimSpace(req.Comentario)
+
+	if len([]rune(req.Comentario)) > 1000 {
+		http.Error(
+			w,
+			"Comentário muito longo",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
 	// Descobre o funcionário responsável pelo terminal.
 	var funcionarioID int64
 
@@ -125,14 +137,16 @@ func (h *AvaliacaoHandler) Criar(w http.ResponseWriter, r *http.Request) {
 			avaliacao,
 			departamento_id,
 			terminal_id,
-			funcionario_id
+			funcionario_id,
+			comentario
 		)
-		VALUES ($1, $2, $3, $4)
+		VALUES ($1, $2, $3, $4, $5)
 		`,
 		req.Avaliacao,
 		req.DepartamentoID,
 		req.TerminalID,
 		funcionarioID,
+		req.Comentario,
 	)
 
 	if err != nil {

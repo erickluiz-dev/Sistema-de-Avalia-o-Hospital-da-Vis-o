@@ -16,6 +16,7 @@ export default function SurveyScreen({
 }: SurveyScreenProps) {
   const [selected, setSelected] = useState<RatingKey | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [comment, setComment] = useState('')  
   const [countdown, setCountdown] = useState(2)
   const [enviando, setEnviando] = useState(false)
 
@@ -28,6 +29,7 @@ export default function SurveyScreen({
           avaliacao: nota,
           departamento_id: departamentoId,
           terminal_id: terminalId,
+          comentario: comment.trim(),
         }),
       })
 
@@ -289,6 +291,32 @@ export default function SurveyScreen({
               </div>
             )
           })}
+        </div>
+
+        {/* Comment box — appears after a rating is selected */}
+        <div
+          className="w-full max-w-2xl flex flex-col gap-2 overflow-hidden transition-all duration-300"
+          style={{ maxHeight: selected ? 160 : 0, opacity: selected ? 1 : 0 }}
+        >
+          {(() => {
+            const sel = RATINGS.find(r => r.key === selected)
+            return (
+              <>
+                <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                  {sel && <sel.Icon size={16} color={sel.color} strokeWidth={2} />}
+                  Conte-nos o motivo da sua avaliação
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Descreva sua experiência com o atendimento…"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-800 resize-none focus:outline-none"
+                />  
+              </>
+            )
+          })()}
         </div>
 
         <div className="h-14 flex items-center">
