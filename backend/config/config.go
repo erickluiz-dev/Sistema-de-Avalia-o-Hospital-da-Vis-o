@@ -1,4 +1,4 @@
-package config
+﻿package config
 
 import (
 	"log"
@@ -22,12 +22,11 @@ type Config struct {
 }
 
 func Load() Config {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		if !os.IsNotExist(err) {
 			log.Println("Aviso: erro ao carregar .env:", err)
 		}
 	}
-
 	port := os.Getenv("PORT")
 
 	if port == "" {

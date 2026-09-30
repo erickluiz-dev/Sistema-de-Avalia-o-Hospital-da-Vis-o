@@ -19,6 +19,26 @@ func gerarCSRFToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+//func DefinirCSRFToken(w http.ResponseWriter) error {
+//	token, err := gerarCSRFToken()
+//	if err != nil {
+//		return err
+//	}
+
+//	http.SetCookie(w, &http.Cookie{
+//		Name:     csrfCookieName,
+//		Value:    token,
+//		Path:     "/",
+//		HttpOnly: false,
+//		Secure:   true,
+//		SameSite: http.SameSiteNoneMode,
+//		MaxAge:   8 * 60 * 60,
+//	})
+
+//	return nil
+//}
+
+//temporário mudar depois para o código comentado
 func DefinirCSRFToken(w http.ResponseWriter) error {
 	token, err := gerarCSRFToken()
 	if err != nil {
@@ -30,8 +50,8 @@ func DefinirCSRFToken(w http.ResponseWriter) error {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   8 * 60 * 60,
 	})
 
