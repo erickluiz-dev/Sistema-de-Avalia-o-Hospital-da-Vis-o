@@ -23,6 +23,7 @@ export type Avaliacao = {
   departamento: string
   terminal: string
   funcionario: string
+  comentario: string
 }
 
 export type Usuario = {

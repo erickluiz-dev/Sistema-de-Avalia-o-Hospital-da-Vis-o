@@ -3,40 +3,137 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 import type { AvaliacaoPorFuncionario } from '../../../types'
 
-type Props = { data: AvaliacaoPorFuncionario[] }
-type PieItem = { name: string; value: number; color: string }
+type Props = {
+  data: AvaliacaoPorFuncionario[]
+}
+
+type PieItem = {
+  name: string
+  value: number
+  color: string
+}
 
 export default function AvaliacaoPorFuncionarioChart({ data }: Props) {
   const [funcionarioSearch, setFuncionarioSearch] = useState('')
-  const [funcionarioSelecionado, setFuncionarioSelecionado] = useState<AvaliacaoPorFuncionario | null>(null)
+  const [funcionarioSelecionado, setFuncionarioSelecionado] =
+    useState<AvaliacaoPorFuncionario | null>(null)
   const [indiceFuncionario, setIndiceFuncionario] = useState(0)
-  const [mostrarSugestoesFuncionario, setMostrarSugestoesFuncionario] = useState(false)
+  const [mostrarSugestoesFuncionario, setMostrarSugestoesFuncionario] =
+    useState(false)
 
   const funcionariosFiltrados = data.filter((funcionario) =>
-    funcionario.funcionario.toLowerCase().includes(funcionarioSearch.toLowerCase()),
+    funcionario.funcionario
+      .toLowerCase()
+      .includes(funcionarioSearch.toLowerCase()),
   )
 
-  const funcionarioAtual = funcionarioSelecionado ?? data[indiceFuncionario] ?? null
+  /*
+   * O funcionário exibido pelo gráfico é sempre a referência
+   * para o cálculo da satisfação.
+   */
+  const funcionarioAtual =
+    funcionarioSelecionado ?? data[indiceFuncionario] ?? null
+
+  /*
+   * Calcula a satisfação exatamente com a mesma regra
+   * utilizada no exportarExcel:
+   *
+   * Excelente = 5
+   * Bom       = 4
+   * Razoável  = 3
+   * Ruim      = 2
+   * Péssimo   = 1
+   *
+   * Pontuação média × 20 = satisfação em %
+   */
+  const calcularSatisfacaoFuncionario = (
+    funcionario: AvaliacaoPorFuncionario | null,
+  ) => {
+    if (!funcionario) return 0
+
+    const total =
+      funcionario.excelente +
+      funcionario.bom +
+      funcionario.razoavel +
+      funcionario.ruim +
+      funcionario.pessimo
+
+    if (total === 0) return 0
+
+    const pontuacaoMedia =
+      (
+        funcionario.excelente * 5 +
+        funcionario.bom * 4 +
+        funcionario.razoavel * 3 +
+        funcionario.ruim * 2 +
+        funcionario.pessimo * 1
+      ) / total
+
+    return pontuacaoMedia * 20
+  }
+
+  /*
+   * A satisfação pertence EXATAMENTE ao funcionário atualmente exibido.
+   *
+   * Portanto:
+   * funcionárioAtual = Teste_2
+   * satisfaçãoFuncionario = satisfação do Teste_2
+   *
+   * Quando o carrossel mudar, esse valor muda junto.
+   */
+  const satisfacaoFuncionario = calcularSatisfacaoFuncionario(funcionarioAtual)
 
   const dadosFuncionario: PieItem[] = funcionarioAtual
     ? [
-        { name: 'Excelente', value: funcionarioAtual.excelente, color: '#00B5CC' },
-        { name: 'Bom', value: funcionarioAtual.bom, color: '#0eb374' },
-        { name: 'Razoável', value: funcionarioAtual.razoavel, color: '#EAB308' },
-        { name: 'Ruim', value: funcionarioAtual.ruim, color: '#F97316' },
-        { name: 'Péssimo', value: funcionarioAtual.pessimo, color: '#EF4444' },
+        {
+          name: 'Excelente',
+          value: funcionarioAtual.excelente,
+          color: '#00B5CC',
+        },
+        {
+          name: 'Bom',
+          value: funcionarioAtual.bom,
+          color: '#0eb374',
+        },
+        {
+          name: 'Razoável',
+          value: funcionarioAtual.razoavel,
+          color: '#EAB308',
+        },
+        {
+          name: 'Ruim',
+          value: funcionarioAtual.ruim,
+          color: '#F97316',
+        },
+        {
+          name: 'Péssimo',
+          value: funcionarioAtual.pessimo,
+          color: '#EF4444',
+        },
       ]
     : []
 
   const porcentagemFuncionario = (quantidade: number) => {
     const total = funcionarioAtual
-      ? funcionarioAtual.excelente + funcionarioAtual.bom + funcionarioAtual.razoavel + funcionarioAtual.ruim + funcionarioAtual.pessimo
+      ? funcionarioAtual.excelente +
+        funcionarioAtual.bom +
+        funcionarioAtual.razoavel +
+        funcionarioAtual.ruim +
+        funcionarioAtual.pessimo
       : 0
 
     if (total === 0) return 0
+
     return Math.round((quantidade / total) * 100)
   }
 
+  /*
+   * Carrossel automático.
+   *
+   * A satisfação acompanha o funcionário porque
+   * satisfacaoFuncionario é recalculada sempre que
+   * funcionarioAtual muda.
+   */
   useEffect(() => {
     if (funcionarioSelecionado || data.length === 0) return
 
@@ -48,10 +145,33 @@ export default function AvaliacaoPorFuncionarioChart({ data }: Props) {
   }, [funcionarioSelecionado, data.length])
 
   return (
-    <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6' }}>
+    <div
+      className="bg-white rounded-2xl p-5"
+      style={{
+        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+        border: '1px solid #f3f4f6',
+      }}
+    >
       <div className="mb-4">
-        <h3 className="font-semibold text-gray-900 text-sm">Avaliação por Funcionário</h3>
-        <p className="text-xs text-gray-400 mt-0.5">{funcionarioAtual?.funcionario ?? 'Nenhum funcionário'}</p>
+        {/* Cabeçalho */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm">
+              Avaliação por Funcionário
+            </h3>
+
+            <p className="text-xs text-gray-400 mt-0.5">
+              {funcionarioAtual?.funcionario ?? 'Nenhum funcionário'}
+            </p>
+          </div>
+
+          {/* Satisfação do funcionário atualmente exibido */}
+          <div className="text-xs text-gray-400 mt-0.5">
+            {Math.round(satisfacaoFuncionario)}%
+          </div>
+        </div>
+
+        {/* Pesquisa */}
         <div className="relative mt-3">
           <input
             value={funcionarioSearch}
@@ -62,51 +182,95 @@ export default function AvaliacaoPorFuncionarioChart({ data }: Props) {
               setMostrarSugestoesFuncionario(true)
             }}
             onFocus={() => {
-              if (funcionarioSearch.trim() !== '') setMostrarSugestoesFuncionario(true)
+              if (funcionarioSearch.trim() !== '') {
+                setMostrarSugestoesFuncionario(true)
+              }
             }}
             placeholder="Pesquisar funcionário..."
             className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
           />
-          {mostrarSugestoesFuncionario && funcionarioSearch.trim() !== '' && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-              {funcionariosFiltrados.length > 0 ? (
-                funcionariosFiltrados.map((funcionario) => (
-                  <button
-                    key={funcionario.funcionario_id}
-                    type="button"
-                    onClick={() => {
-                      setFuncionarioSelecionado(funcionario)
-                      setFuncionarioSearch(funcionario.funcionario)
-                      setMostrarSugestoesFuncionario(false)
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    {funcionario.funcionario}
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-sm text-gray-400">Nenhum funcionário encontrado</div>
-              )}
-            </div>
-          )}
+
+          {mostrarSugestoesFuncionario &&
+            funcionarioSearch.trim() !== '' && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                {funcionariosFiltrados.length > 0 ? (
+                  funcionariosFiltrados.map((funcionario) => (
+                    <button
+                      key={funcionario.funcionario_id}
+                      type="button"
+                      onClick={() => {
+                        setFuncionarioSelecionado(funcionario)
+                        setFuncionarioSearch(funcionario.funcionario)
+                        setMostrarSugestoesFuncionario(false)
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      {funcionario.funcionario}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-400">
+                    Nenhum funcionário encontrado
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
+
+      {/* Gráfico */}
       <ResponsiveContainer width="100%" height={160}>
         <PieChart>
-          <Pie data={dadosFuncionario} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
-            {dadosFuncionario.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+          <Pie
+            data={dadosFuncionario}
+            cx="50%"
+            cy="50%"
+            innerRadius={45}
+            outerRadius={72}
+            paddingAngle={3}
+            dataKey="value"
+          >
+            {dadosFuncionario.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
           </Pie>
-          <Tooltip formatter={(value, name) => [`${Number(value)} avaliações`, name]} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+
+          <Tooltip
+            formatter={(value, name) => [
+              `${Number(value)} avaliações`,
+              name,
+            ]}
+            contentStyle={{
+              borderRadius: 12,
+              border: 'none',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              fontSize: 12,
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
+
+      {/* Legenda */}
       <div className="flex flex-col gap-1.5 mt-2">
         {dadosFuncionario.map((item) => (
-          <div key={item.name} className="flex items-center justify-between text-xs">
+          <div
+            key={item.name}
+            className="flex items-center justify-between text-xs"
+          >
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-              <span className="text-gray-600">{item.name}</span>
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ background: item.color }}
+              />
+
+              <span className="text-gray-600">
+                {item.name}
+              </span>
             </div>
-            <span className="font-semibold text-gray-900">{porcentagemFuncionario(item.value)}%</span>
+
+            <span className="font-semibold text-gray-900">
+              {porcentagemFuncionario(item.value)}%
+            </span>
           </div>
         ))}
       </div>

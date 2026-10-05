@@ -335,7 +335,8 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 			a.terminal_id,
 			COALESCE(t.terminal, '') AS terminal,
 			a.funcionario_id,
-			COALESCE(f.nome, '') AS funcionario
+			COALESCE(f.nome, '') AS funcionario,
+			COALESCE(a.comentario, '') AS comentario
 		` + baseWhere + `
 		ORDER BY a.id DESC
 		LIMIT $` + strconv.Itoa(argIndex) + `
@@ -378,6 +379,7 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 			&avaliacao.Terminal,
 			&avaliacao.FuncionarioID,
 			&avaliacao.Funcionario,
+			&avaliacao.Comentario,
 		)
 		if err != nil {
 			log.Println("Erro ao ler avaliação:", err)

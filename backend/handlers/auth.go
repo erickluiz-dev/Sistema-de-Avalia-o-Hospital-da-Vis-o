@@ -23,9 +23,9 @@ import (
 )
 
 type AuthHandler struct {
-	DB          *pgxpool.Pool
+	DB           *pgxpool.Pool
 	EmailService *services.EmailService
-	FrontendURL string
+	FrontendURL  string
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	sessionToken := uuid.New().String()
 	sessionHash := hashSessionToken(sessionToken)
 	expiraEm := time.Now().Add(8 * time.Hour)
@@ -143,13 +142,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secure := r.TLS != nil
+
+	sameSite := http.SameSiteLaxMode
+
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    sessionToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   secure,
+		SameSite: sameSite,
 		MaxAge:   8 * 60 * 60,
 	})
 
@@ -275,7 +282,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	middleware.LimparCSRFToken(w)
 
-	w.WriteHeader(http.StatusNoContent)	
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *AuthHandler) Authenticate(

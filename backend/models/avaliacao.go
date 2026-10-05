@@ -12,6 +12,7 @@ type Avaliacoes struct {
 	Terminal       string    `json:"terminal"`
 	FuncionarioID  int64     `json:"funcionario_id"`
 	Funcionario    string    `json:"funcionario"`
+	Comentario     string    `json:"comentario"`
 }
 
 type NovaAvaliacaoRequest struct {
