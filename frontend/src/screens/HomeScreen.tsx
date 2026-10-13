@@ -16,32 +16,60 @@ export default function HomeScreen({
   onStartSurvey,
 }: HomeScreenProps) {
   const cards = [
+    {icon: (
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <rect
+            x="3"
+            y="4"
+            width="18"
+            height="12"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <path
+            d="M8 20h8M12 16v4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      ),
+      title: 'Computador do atendente',
+      desc: 'Valide os dados dos pacientes, confira as correções recebidas e libere a avaliação',
+      btn: 'Abrir tela do atendente',
+      color: '#00B5CC',
+      screen: 'department' as Screen,
+      gradient: '#00B5CC',
+      shadow: '#00b4cc59',
+      accent: '#E0F2FE',
+    },
+
     {
       icon: (
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="#029fb4"
+          <rect
+            x="5"
+            y="3"
+            width="14"
+            height="18"
+            rx="2"
+            stroke="currentColor"
             strokeWidth="1.5"
             fill="none"
-            opacity=".4"
           />
           <path
-            d="M8 14s1.5 2 4 2 4-2 4-2"
+            d="M12 18h.01"
             stroke="currentColor"
-            strokeWidth="1.8"
+            strokeWidth="2"
             strokeLinecap="round"
-            fill="none"
           />
-          <circle cx="9" cy="10" r="1.2" fill="#00B5CC" />
-          <circle cx="15" cy="10" r="1.2" fill="#00B5CC" />
         </svg>
       ),
-      title: 'Página de Avaliação',
-      desc: 'Abra a pesquisa de satisfação do cliente.',
-      btn: 'Começar Avaliação',
+      title: 'Tablet do paciente',
+      desc: 'Confira os dados enviados, informe correções e aguarde a liberação da avaliação.',
+      btn: 'Abrir tela do paciente',
       color: '#00B5CC',
       screen: 'department' as Screen,
       gradient: '#00B5CC',
@@ -142,6 +170,7 @@ export default function HomeScreen({
 
         <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-6 w-full">
           {cards.map((card) => (
+            
             <div
               key={card.title}
               className="w-full sm:w-[360px] bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
