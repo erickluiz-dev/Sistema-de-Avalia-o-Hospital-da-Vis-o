@@ -36,7 +36,7 @@ export default function HomeScreen({
           />
         </svg>
       ),
-      title: 'Computador do atendente',
+      title: 'Computador do Atendente',
       desc: 'Valide os dados dos pacientes, confira as correções recebidas e libere a avaliação',
       btn: 'Abrir tela do atendente',
       color: '#00B5CC',
