@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 import { apiFetch } from './services/api'
 
@@ -7,6 +7,7 @@ import SurveyScreen from './screens/SurveyScreen'
 import HomeScreen from './screens/HomeScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import DepartmentScreen from './screens/DepartmentScreen'
+import ConnectionScreen from './screens/ConnectionScreen'
 import ManagementScreen from './screens/ManagementScreen'
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
@@ -14,6 +15,7 @@ import ResetPasswordScreen from './screens/ResetPasswordScreen'
 import type {
   Screen,
   Usuario,
+  ModoAtendimento,
 } from './types'
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
@@ -26,6 +28,7 @@ export default function App() {
   const [departamentoId, setDepartamentoId] = useState<number | null>(null)
   const [terminalId, setTerminalId] = useState<number | null>(null)
   const [mostrarDepartamento, setMostrarDepartamento] = useState(false)
+  const [modoAtendimento, setModoAtendimento] = useState<ModoAtendimento>('paciente')
 
   const [resetToken, setResetToken] = useState('')
 
@@ -109,6 +112,54 @@ export default function App() {
     }
   }
 
+  const handlePatientAuthorized = useCallback(() => {
+    setScreen('survey')
+  }, [])
+
+  // Mantém a presença do tablet durante toda a avaliação, não apenas na espera.
+  useEffect(() => {
+    if (
+      screen !== 'survey' ||
+      modoAtendimento !== 'paciente' ||
+      departamentoId === null ||
+      terminalId === null
+    ) {
+      return
+    }
+
+    const clientId = sessionStorage.getItem('hv-atendimento-client-id')
+    if (!clientId) return
+
+    const payload = JSON.stringify({
+      department_id: departamentoId,
+      terminal_id: terminalId,
+      client_id: clientId,
+      role: 'paciente',
+    })
+    let ativo = true
+    let emExecucao = false
+
+    const heartbeat = async () => {
+      if (emExecucao) return
+      emExecucao = true
+      try {
+        await apiFetch('/atendimento/presenca', { method: 'POST', body: payload })
+      } catch (error) {
+        console.error('Erro ao renovar presença do tablet:', error)
+      } finally {
+        emExecucao = false
+      }
+    }
+
+    void heartbeat()
+    const interval = window.setInterval(() => { if (ativo) void heartbeat() }, 2000)
+    return () => {
+      ativo = false
+      window.clearInterval(interval)
+      void apiFetch('/atendimento/sair', { method: 'POST', body: payload }).catch(() => undefined)
+    }
+  }, [screen, modoAtendimento, departamentoId, terminalId])
+
   // ─── Tela de carregamento ──────────────────────────────────────────────────
 
   if (verificandoSessao) {
@@ -179,13 +230,15 @@ export default function App() {
             usuario={usuario}
             onNav={setScreen}
             onLogout={handleLogout}
-            onStartSurvey={() => {
+            onStartSurvey={(modo) => {
+              setModoAtendimento(modo)
               setMostrarDepartamento(true)
             }}
           />
 
           {mostrarDepartamento && (
             <DepartmentScreen
+              modo={modoAtendimento}
               onStart={(
                 departamentoIdSelecionado,
                 terminalIdSelecionado,
@@ -199,7 +252,7 @@ export default function App() {
                 )
 
                 setMostrarDepartamento(false)
-                setScreen('survey')
+                setScreen('connection')
               }}
               onBack={() => {
                 setMostrarDepartamento(false)
@@ -208,6 +261,24 @@ export default function App() {
           )}
         </>
       )}
+
+      {/* CONEXÃO ENTRE COMPUTADOR E TABLET */}
+
+      {screen === 'connection' &&
+        departamentoId !== null &&
+        terminalId !== null && (
+          <ConnectionScreen
+            departamentoId={departamentoId}
+            terminalId={terminalId}
+            modo={modoAtendimento}
+            onAuthorized={handlePatientAuthorized}
+            onBack={() => {
+              setDepartamentoId(null)
+              setTerminalId(null)
+              setScreen('home')
+            }}
+          />
+        )}
 
       {/* PESQUISA */}
 

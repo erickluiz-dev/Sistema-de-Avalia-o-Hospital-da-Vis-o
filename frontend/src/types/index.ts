@@ -4,9 +4,12 @@ export type Screen =
   | 'reset-password'
   | 'home'
   | 'department'
+  | 'connection'
   | 'survey'
   | 'dashboard'
   | 'management'
+
+export type ModoAtendimento = 'funcionario' | 'paciente'
 
 export type RatingKey =
   | 'pessimo'

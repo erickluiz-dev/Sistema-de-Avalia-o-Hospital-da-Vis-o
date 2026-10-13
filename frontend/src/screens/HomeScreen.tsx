@@ -1,4 +1,4 @@
-import type { Screen, Usuario } from '../types'
+import type { ModoAtendimento, Screen, Usuario } from '../types'
 
 import NavBar from '../components/NavBar'
 
@@ -6,7 +6,7 @@ interface HomeScreenProps {
   onNav: (screen: Screen) => void
   onLogout: () => void
   usuario: Usuario | null
-  onStartSurvey: () => void
+  onStartSurvey: (modo: ModoAtendimento) => void
 }
 
 export default function HomeScreen({
@@ -16,135 +16,77 @@ export default function HomeScreen({
   onStartSurvey,
 }: HomeScreenProps) {
   const cards = [
-    {icon: (
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-          <rect
-            x="3"
-            y="4"
-            width="18"
-            height="12"
-            rx="2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <path
-            d="M8 20h8M12 16v4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
+    {
+      icon: (
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M8 20h8M12 16v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
       title: 'Computador do Atendente',
-      desc: 'Valide os dados dos pacientes, confira as correções recebidas e libere a avaliação',
+      desc: 'Conecte-se ao tablet, confira os dados do paciente e libere a avaliação.',
       btn: 'Abrir tela do atendente',
       color: '#00B5CC',
-      screen: 'department' as Screen,
+      mode: 'funcionario' as ModoAtendimento,
       gradient: '#00B5CC',
       shadow: '#00b4cc59',
       accent: '#E0F2FE',
     },
-
     {
       icon: (
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-          <rect
-            x="5"
-            y="3"
-            width="14"
-            height="18"
-            rx="2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <path
-            d="M12 18h.01"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="2.5" width="14" height="19" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M10 18.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
-      title: 'Tablet do paciente',
-      desc: 'Confira os dados enviados, informe correções e aguarde a liberação da avaliação.',
+      title: 'Tablet do Paciente',
+      desc: 'Conecte-se ao computador do atendente, confira os dados e aguarde a liberação.',
       btn: 'Abrir tela do paciente',
       color: '#00B5CC',
-      screen: 'department' as Screen,
+      mode: 'paciente' as ModoAtendimento,
       gradient: '#00B5CC',
       shadow: '#00b4cc59',
       accent: '#E0F2FE',
     },
-
-     ...(usuario?.administrador
-    ? [
+    ...(usuario?.administrador
+      ? [
           {
-          icon: (
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" opacity=".6" />
-              <rect x="10" y="7" width="4" height="14" rx="1" fill="currentColor" opacity=".8" />
-              <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" />
-            </svg>
-          ),
-          title: 'Painel Administrativo',
-          desc: 'Visualize estatísticas, relatórios e indicadores de satisfação.',
-          btn: 'Acessar Painel',
-          color: '#00B5CC',
-          screen: 'dashboard' as Screen,
-          gradient: '#00B5CC',
-          shadow: '#00b4cc59',
-          accent: '#EFF6FF',
-        },
-        {
-          icon: (
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                cx="9"
-                cy="8"
-                r="3"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-
-              <path
-                d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M16 11c2.761 0 5 2.239 5 5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M16 5.5a2.5 2.5 0 1 1 0 5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
-          ),
-          title: 'Gerenciamento',
-          desc: 'Gerencie usuários, funcionários, departamentos e terminais.',
-          btn: 'Acessar Gerenciamento',
-          color: '#00B5CC',
-          screen: 'management' as Screen,
-          gradient: '#00B5CC',
-          shadow: '#00b4cc59',
-          accent: '#E0F2FE',
-        },
-      ]
-    : []),
-]
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" opacity=".6" />
+                <rect x="10" y="7" width="4" height="14" rx="1" fill="currentColor" opacity=".8" />
+                <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" />
+              </svg>
+            ),
+            title: 'Painel Administrativo',
+            desc: 'Visualize estatísticas, relatórios e indicadores de satisfação.',
+            btn: 'Acessar Painel',
+            color: '#00B5CC',
+            screen: 'dashboard' as Screen,
+            gradient: '#00B5CC',
+            shadow: '#00b4cc59',
+            accent: '#EFF6FF',
+          },
+          {
+            icon: (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M16 11c2.761 0 5 2.239 5 5M16 5.5a2.5 2.5 0 1 1 0 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            ),
+            title: 'Gerenciamento',
+            desc: 'Gerencie usuários, funcionários, departamentos e terminais.',
+            btn: 'Acessar Gerenciamento',
+            color: '#00B5CC',
+            screen: 'management' as Screen,
+            gradient: '#00B5CC',
+            shadow: '#00b4cc59',
+            accent: '#E0F2FE',
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -170,7 +112,6 @@ export default function HomeScreen({
 
         <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-6 w-full">
           {cards.map((card) => (
-            
             <div
               key={card.title}
               className="w-full sm:w-[360px] bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
@@ -179,12 +120,12 @@ export default function HomeScreen({
                 border: '1px solid #f3f4f6',
               }}
               onClick={() => {
-                if (card.screen === 'department') {
-                  onStartSurvey()
+                if ('mode' in card && card.mode) {
+                  onStartSurvey(card.mode)
                   return
                 }
 
-                onNav(card.screen)
+                if ('screen' in card && card.screen) onNav(card.screen)
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)'
@@ -224,12 +165,12 @@ export default function HomeScreen({
                 onClick={(e) => {
                   e.stopPropagation()
 
-                  if (card.screen === 'department') {
-                    onStartSurvey()
+                  if ('mode' in card && card.mode) {
+                    onStartSurvey(card.mode)
                     return
                   }
 
-                  onNav(card.screen)
+                  if ('screen' in card && card.screen) onNav(card.screen)
                 }}
                                 className="mt-auto w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer"
                 style={{

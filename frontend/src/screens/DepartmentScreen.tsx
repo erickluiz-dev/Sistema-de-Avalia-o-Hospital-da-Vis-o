@@ -4,13 +4,16 @@ import { apiFetch } from '../services/api'
 
 import type {
   Departamento,
+  ModoAtendimento,
   Terminal,
 } from '../types'
 
 function DepartmentScreen({
+  modo,
   onStart,
   onBack,
 }: {
+  modo: ModoAtendimento
   onStart: (
     departamentoId: number,
     terminalId: number,
@@ -192,11 +195,11 @@ function DepartmentScreen({
         }}
       >
         <h1 className="text-2xl font-bold text-gray-900 text-center">
-          Página de Avaliação
+          {modo === 'funcionario' ? 'Computador do Atendente' : 'Tablet do Paciente'}
         </h1>
 
         <p className="text-gray-500 text-sm text-center mt-2 mb-8">
-          Selecione o departamento que deseja avaliar.
+          Selecione o mesmo departamento e terminal que serão usados no outro dispositivo.
         </p>
 
         {/* Departamento */}
@@ -294,7 +297,7 @@ function DepartmentScreen({
           className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
-          Começar Avaliação
+          Conectar dispositivo
         </button>
 
         {departamentoSelecionado &&

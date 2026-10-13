@@ -1,27 +1,40 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
+	"backend/atendimento"
 	"backend/config"
 	"backend/database"
 	"backend/handlers"
 	"backend/jobs"
 	"backend/middleware"
 	"backend/services"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-
-var db *pgxpool.Pool
-
 func main() {
-
+	// Configuração existente.
 	cfg := config.Load()
 
+	if cfg.DatabaseURL == "" {
+		log.Fatal("DATABASE_URL não configurada")
+	}
+
+	// Conexão com o banco de dados existente.
+	db, err := database.Connect(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("Erro ao criar conexão: ", err)
+	}
+	defer db.Close()
+
+	if err := database.Ping(db); err != nil {
+		log.Fatal("Erro ao conectar ao PostgreSQL: ", err)
+	}
+
+	log.Println("Banco de dados conectado!")
+
+	// Serviços existentes.
 	emailService := services.NewEmailService(
 		cfg.SMTPHost,
 		cfg.SMTPPort,
@@ -30,38 +43,22 @@ func main() {
 		cfg.SMTPFrom,
 	)
 
-	if cfg.DatabaseURL == "" {
-		log.Fatal("DATABASE_URL não configurada")
-	}
-
-	var err error
-
-	db, err = database.Connect(cfg.DatabaseURL)
-
-	if err != nil {
-		log.Fatal("Erro ao criar conexão:", err)
-	}
-
-	defer db.Close()
-
-	if err := database.Ping(db); err != nil {
-		log.Fatal("Erro ao conectar ao PostgreSQL:", err)
-	}
-
-	imprimirSeparador()
-
-	fmt.Println("Banco de dados conectado!")
-
-	// Serviço de auditoria
 	auditoriaService := services.NewAuditoriaService(db)
 
-	jobs.IniciarLimpezaSessoes(
-		db,
-		1*time.Hour,
-	)
+	// Mantém a limpeza periódica das sessões existentes.
+	jobs.IniciarLimpezaSessoes(db, time.Hour)
 
+	// Middlewares existentes.
 	loginLimiter := middleware.NewLoginLimiter()
 
+	rateLimiter := middleware.NewRateLimiter(
+		100,
+		time.Minute,
+	)
+
+	clientIPResolver := middleware.NewClientIPResolver()
+
+	// Handlers existentes.
 	authHandler := &handlers.AuthHandler{
 		DB:           db,
 		EmailService: emailService,
@@ -80,19 +77,17 @@ func main() {
 		DB: db,
 	}
 
-	rateLimiter := middleware.NewRateLimiter(
-		100,
-		time.Minute,
-	)
-
-	clientIPResolver := middleware.NewClientIPResolver()
-
 	gerenciamentoHandler := &handlers.GerenciamentoHandler{
 		DB:               db,
 		ClientIPResolver: clientIPResolver,
 		AuditoriaService: auditoriaService,
 	}
 
+	// Novo: gerenciador compartilhado das conexões de atendimento.
+	// O mesmo manager deve ser usado por todas as rotas desta instância.
+	atendimentoManager := atendimento.NewManager()
+
+	// Configuração das rotas antigas e novas.
 	handler := configurarRotas(
 		authHandler,
 		avaliacaoHandler,
@@ -102,21 +97,15 @@ func main() {
 		loginLimiter,
 		rateLimiter,
 		cfg.AllowedOrigins,
+		atendimentoManager,
 	)
 
-	fmt.Println("Servidor iniciado!")
-
-	imprimirSeparador()
-
+	// Mantém a criação do servidor existente.
 	servidor := criarServidor(cfg.Port, handler)
 
-	log.Fatal(servidor.ListenAndServe())
-}
+	log.Printf("Servidor iniciado na porta %s", cfg.Port)
 
-func imprimirSeparador() {
-	for i := 0; i < 26; i++ {
-		fmt.Print("=")
+	if err := servidor.ListenAndServe(); err != nil {
+		log.Fatal("Erro no servidor: ", err)
 	}
-
-	fmt.Println()
 }

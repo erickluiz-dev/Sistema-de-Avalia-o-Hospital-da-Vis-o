@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/atendimento"
 	"backend/handlers"
 	"backend/middleware"
 	"net/http"
@@ -15,15 +16,16 @@ func configurarRotas(
 	loginLimiter *middleware.LoginLimiter,
 	rateLimiter *middleware.RateLimiter,
 	allowedOrigins string,
+	atendimentoManagers ...*atendimento.Manager,
 ) http.Handler {
 
 	mux := http.NewServeMux()
 
 	// ============================================================
-	// ROTAS PÚBLICAS
+	// ROTAS PÚBLICAS EXISTENTES
 	// ============================================================
 
-	// Login
+	// Login.
 	mux.Handle(
 		"/login",
 		loginLimiter.Middleware(
@@ -31,47 +33,42 @@ func configurarRotas(
 		),
 	)
 
-	// Recuperação de senha
+	// Recuperação de senha.
 	mux.HandleFunc(
 		"/recuperacao-senha",
 		authHandler.SolicitarRecuperacaoSenha,
 	)
 
-	// Redefinição de senha
+	// Redefinição de senha.
 	mux.HandleFunc(
 		"/redefinir-senha",
 		authHandler.RedefinirSenha,
 	)
 
-	// Departamentos disponíveis para a pesquisa
+	// Departamentos disponíveis para avaliação.
 	mux.HandleFunc(
 		"/departamentos",
 		departamentoHandler.Listar,
 	)
 
-	// Terminais disponíveis para a pesquisa
+	// Terminais disponíveis para avaliação.
 	mux.HandleFunc(
 		"/terminais",
 		terminalHandler.Listar,
 	)
 
-	// Verifica se existe funcionário ativo
-	// vinculado ao departamento e terminal selecionados.
+	// Verifica funcionário ativo vinculado ao terminal.
 	mux.HandleFunc(
 		"/funcionarios/disponibilidade",
 		terminalHandler.VerificarFuncionario,
 	)
 
-	// Criar avaliação
-	//
-	// Esta rota permanece pública porque o usuário
-	// responde à pesquisa sem precisar estar autenticado.
-	mux.HandleFunc(
+	// Criar avaliação permanece público.
+	// A listagem por GET continua restrita a administradores.
+	mux.Handle(
 		"/avaliacoes",
-		func(w http.ResponseWriter, r *http.Request) {
-
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
-
 			case http.MethodPost:
 				avaliacaoHandler.Criar(w, r)
 
@@ -90,200 +87,180 @@ func configurarRotas(
 					http.StatusMethodNotAllowed,
 				)
 			}
-		},
+		}),
 	)
 
 	// ============================================================
-	// ROTAS AUTENTICADAS
+	// MIDDLEWARES DE AUTENTICAÇÃO
 	// ============================================================
 
-	// Usuário autenticado
+	auth := func(next http.HandlerFunc) http.Handler {
+		return middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			http.HandlerFunc(next),
+		)
+	}
+
+	admin := func(next http.HandlerFunc) http.Handler {
+		return middleware.ExigirAutenticacao(
+			authHandler.Authenticate,
+			middleware.ExigirAdmin(
+				http.HandlerFunc(next),
+			),
+		)
+	}
+
+	// ============================================================
+	// NOVAS ROTAS DE ATENDIMENTO
+	// ============================================================
+
+	// O manager é opcional para manter compatibilidade com chamadas
+	// antigas de configurarRotas que ainda não o fornecem.
+	if len(atendimentoManagers) > 0 &&
+		atendimentoManagers[0] != nil {
+
+		atendimentoHandler := &handlers.AtendimentoHandler{
+			Manager: atendimentoManagers[0],
+		}
+
+		// Presença: permite registrar o computador e o tablet.
+		// O manager valida departamento, terminal, cliente e função.
+		mux.Handle(
+			"/atendimento/presenca",
+			http.HandlerFunc(atendimentoHandler.Presence),
+		)
+
+		// Status: permite que cada dispositivo consulte a conexão.
+		mux.Handle(
+			"/atendimento/status",
+			http.HandlerFunc(atendimentoHandler.Status),
+		)
+
+		// A liberação exige uma sessão autenticada.
+		// O handler também verifica a função declarada e o estado
+		// da conexão antes de autorizar a avaliação.
+		mux.Handle(
+			"/atendimento/autorizar",
+			auth(atendimentoHandler.Authorize),
+		)
+
+		// Saída: remove a presença do dispositivo.
+		mux.Handle(
+			"/atendimento/sair",
+			http.HandlerFunc(atendimentoHandler.Leave),
+		)
+	}
+
+	// ============================================================
+	// ROTAS AUTENTICADAS EXISTENTES
+	// ============================================================
+
 	mux.Handle(
 		"/me",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			http.HandlerFunc(authHandler.Me),
-		),
+		auth(authHandler.Me),
 	)
 
-	// Logout
 	mux.Handle(
 		"/logout",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			http.HandlerFunc(authHandler.Logout),
-		),
+		auth(authHandler.Logout),
 	)
 
 	// ============================================================
-	// ROTAS ADMINISTRATIVAS
+	// ROTAS ADMINISTRATIVAS EXISTENTES
 	// ============================================================
 
-	// ------------------------------------------------------------
-	// Avaliações
-	// ------------------------------------------------------------
-
-	// Listagem das avaliações
+	// Avaliações.
 	mux.Handle(
 		"/admin/avaliacoes",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(avaliacaoHandler.Listar),
-			),
-		),
+		admin(avaliacaoHandler.Listar),
 	)
 
-	// Estatísticas das avaliações
 	mux.Handle(
 		"/avaliacoes/estatisticas",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(avaliacaoHandler.Estatisticas),
-			),
-		),
+		admin(avaliacaoHandler.Estatisticas),
 	)
 
-	// ------------------------------------------------------------
-	// Usuários
-	// ------------------------------------------------------------
-
+	// Usuários.
 	mux.Handle(
 		"/admin/usuarios",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.Usuarios),
-			),
-		),
+		admin(gerenciamentoHandler.Usuarios),
 	)
 
 	mux.Handle(
 		"/admin/usuarios/",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.AtualizarUsuario),
-			),
-		),
+		admin(gerenciamentoHandler.AtualizarUsuario),
 	)
 
-	// ------------------------------------------------------------
-	// Funcionários
-	// ------------------------------------------------------------
-
+	// Funcionários.
 	mux.Handle(
 		"/admin/funcionarios",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.Funcionarios),
-			),
-		),
+		admin(gerenciamentoHandler.Funcionarios),
 	)
 
-	// Vincular/desvincular terminal de funcionário
 	mux.Handle(
 		"/admin/funcionarios/{id}/terminal",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.VincularTerminal),
-			),
-		),
+		admin(gerenciamentoHandler.VincularTerminal),
 	)
 
 	mux.Handle(
 		"/admin/funcionarios/{id}",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.FuncionarioPorID),
-			),
-		),
+		admin(gerenciamentoHandler.FuncionarioPorID),
 	)
 
-	// ------------------------------------------------------------
-	// Terminais
-	// ------------------------------------------------------------
-
+	// Terminais.
 	mux.Handle(
 		"/admin/terminais",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.Terminais),
-			),
-		),
+		admin(gerenciamentoHandler.Terminais),
 	)
 
 	mux.Handle(
 		"/admin/terminais/{id}",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch r.Method {
-					case http.MethodPut:
-						gerenciamentoHandler.AtualizarTerminal(w, r)
+		admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodPut:
+				gerenciamentoHandler.AtualizarTerminal(w, r)
 
-					case http.MethodDelete:
-						gerenciamentoHandler.DesativarTerminal(w, r)
+			case http.MethodDelete:
+				gerenciamentoHandler.DesativarTerminal(w, r)
 
-					default:
-						http.Error(
-							w,
-							"Método não permitido",
-							http.StatusMethodNotAllowed,
-						)
-					}
-				}),
-			),
-		),
+			default:
+				http.Error(
+					w,
+					"Método não permitido",
+					http.StatusMethodNotAllowed,
+				)
+			}
+		})),
 	)
 
-	// ------------------------------------------------------------
-	// Departamentos
-	// ------------------------------------------------------------
-
+	// Departamentos.
 	mux.Handle(
 		"/admin/departamentos",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(gerenciamentoHandler.Departamentos),
-			),
-		),
+		admin(gerenciamentoHandler.Departamentos),
 	)
 
 	mux.Handle(
 		"/admin/departamentos/",
-		middleware.ExigirAutenticacao(
-			authHandler.Authenticate,
-			middleware.ExigirAdmin(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch r.Method {
-					case http.MethodPut:
-						gerenciamentoHandler.AtualizarDepartamento(w, r)
+		admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodPut:
+				gerenciamentoHandler.AtualizarDepartamento(w, r)
 
-					case http.MethodDelete:
-						gerenciamentoHandler.DesativarDepartamento(w, r)
+			case http.MethodDelete:
+				gerenciamentoHandler.DesativarDepartamento(w, r)
 
-					default:
-						http.Error(
-							w,
-							"Método não permitido",
-							http.StatusMethodNotAllowed,
-						)
-					}
-				}),
-			),
-		),
+			default:
+				http.Error(
+					w,
+					"Método não permitido",
+					http.StatusMethodNotAllowed,
+				)
+			}
+		})),
 	)
 
 	// ============================================================
-	// MIDDLEWARES GLOBAIS
+	// MIDDLEWARES GLOBAIS EXISTENTES
 	// ============================================================
 
 	return middleware.SecurityHeaders(
