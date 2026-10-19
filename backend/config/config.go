@@ -19,6 +19,9 @@ type Config struct {
 	SMTPUsername string
 	SMTPPassword string
 	SMTPFrom     string
+
+	TailscaleAuthKey  string
+	TailscaleHostname string
 }
 
 func Load() Config {
@@ -45,5 +48,8 @@ func Load() Config {
 		SMTPUsername: os.Getenv("SMTP_USERNAME"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
+
+		TailscaleAuthKey:  os.Getenv("TAILSCALE_AUTHKEY"),
+		TailscaleHostname: os.Getenv("TAILSCALE_HOSTNAME"),
 	}
 }

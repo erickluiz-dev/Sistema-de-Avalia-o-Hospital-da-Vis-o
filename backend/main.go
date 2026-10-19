@@ -11,10 +11,12 @@ import (
 	"backend/jobs"
 	"backend/middleware"
 	"backend/services"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"tailscale.com/tsnet"
 )
 
 func main() {
-	// Configuração existente.
 	cfg := config.Load()
 
 	if cfg.DatabaseURL == "" {
@@ -22,7 +24,40 @@ func main() {
 	}
 
 	// Conexão com o banco de dados existente.
-	db, err := database.Connect(cfg.DatabaseURL)
+	var (
+		db       *pgxpool.Pool
+		tsServer *tsnet.Server
+		err      error
+	)
+
+	if cfg.TailscaleAuthKey != "" {
+		hostname := cfg.TailscaleHostname
+		if hostname == "" {
+			hostname = "hv-backend"
+		}
+
+		tsServer = &tsnet.Server{
+			Hostname:  hostname,
+			AuthKey:   cfg.TailscaleAuthKey,
+			Ephemeral: true,
+		}
+
+		if err = tsServer.Start(); err != nil {
+			log.Fatal("Erro ao iniciar Tailscale: ", err)
+		}
+		defer tsServer.Close()
+
+		log.Println("Tailscale iniciado.")
+
+		db, err = database.ConnectWithDialer(
+			cfg.DatabaseURL,
+			tsServer.Dial,
+		)
+	} else {
+		// Mantém a conexão convencional no desenvolvimento local.
+		db, err = database.Connect(cfg.DatabaseURL)
+	}
+
 	if err != nil {
 		log.Fatal("Erro ao criar conexão: ", err)
 	}
