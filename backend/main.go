@@ -30,6 +30,9 @@ func main() {
 		err      error
 	)
 
+	log.Println("Iniciando configuração do banco de dados...")
+	log.Printf("Tailscale configurado: %t", cfg.TailscaleAuthKey != "")
+
 	if cfg.TailscaleAuthKey != "" {
 		hostname := cfg.TailscaleHostname
 		if hostname == "" {
@@ -62,6 +65,8 @@ func main() {
 		log.Fatal("Erro ao criar conexão: ", err)
 	}
 	defer db.Close()
+
+	log.Println("Verificando conexão com o PostgreSQL...")
 
 	if err := database.Ping(db); err != nil {
 		log.Fatal("Erro ao conectar ao PostgreSQL: ", err)
@@ -134,6 +139,8 @@ func main() {
 		cfg.AllowedOrigins,
 		atendimentoManager,
 	)
+
+	log.Println("Inicializando servidor HTTP...")
 
 	// Mantém a criação do servidor existente.
 	servidor := criarServidor(cfg.Port, handler)
