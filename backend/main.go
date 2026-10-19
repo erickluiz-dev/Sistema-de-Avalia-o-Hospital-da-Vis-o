@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -45,12 +46,18 @@ func main() {
 			Ephemeral: true,
 		}
 
-		if err = tsServer.Start(); err != nil {
-			log.Fatal("Erro ao iniciar Tailscale: ", err)
-		}
-		defer tsServer.Close()
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			45*time.Second,
+		)
+		defer cancel()
 
-		log.Println("Tailscale iniciado.")
+		status, err := tsServer.Up(ctx)
+		if err != nil {
+			log.Fatal("Erro ao conectar o Tailscale: ", err)
+		}
+
+		log.Printf("Tailscale conectado. IPs: %v", status.TailscaleIPs)
 
 		db, err = database.ConnectWithDialer(
 			cfg.DatabaseURL,
