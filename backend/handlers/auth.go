@@ -24,6 +24,7 @@ import (
 
 type AuthHandler struct {
 	DB           *pgxpool.Pool
+	CookieSecure bool
 	EmailService *services.EmailService
 	FrontendURL  string
 }
@@ -130,22 +131,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := middleware.DefinirCSRFToken(w); err != nil {
-		log.Println("Erro ao criar token CSRF:", err)
-
-		http.Error(
-			w,
-			"Erro interno do servidor",
-			http.StatusInternalServerError,
-		)
-
-		return
-	}
-
-	secure := r.TLS != nil
+	secure := h.CookieSecure
 
 	sameSite := http.SameSiteLaxMode
-
 	if secure {
 		sameSite = http.SameSiteNoneMode
 	}
@@ -275,12 +263,17 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
-		MaxAge:   -1,
+		Secure:   h.CookieSecure,
+		SameSite: func() http.SameSite {
+			if h.CookieSecure {
+				return http.SameSiteNoneMode
+			}
+			return http.SameSiteLaxMode
+		}(),
+		MaxAge: -1,
 	})
 
-	middleware.LimparCSRFToken(w)
+	middleware.LimparCSRFToken(w, h.CookieSecure)
 
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -3,6 +3,7 @@
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	DatabaseURL    string
 	Port           string
 	AllowedOrigins string
+	CookieSecure   bool
 
 	FrontendURL string
 
@@ -36,10 +38,13 @@ func Load() Config {
 		port = "8080"
 	}
 
+	cookieSecure, _ := strconv.ParseBool(os.Getenv("COOKIE_SECURE"))
+
 	return Config{
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		Port:           port,
 		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
+		CookieSecure:   cookieSecure,
 
 		FrontendURL: os.Getenv("FRONTEND_URL"),
 

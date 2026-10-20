@@ -110,6 +110,7 @@ func main() {
 		DB:           db,
 		EmailService: emailService,
 		FrontendURL:  cfg.FrontendURL,
+		CookieSecure: cfg.CookieSecure,
 	}
 
 	avaliacaoHandler := &handlers.AvaliacaoHandler{

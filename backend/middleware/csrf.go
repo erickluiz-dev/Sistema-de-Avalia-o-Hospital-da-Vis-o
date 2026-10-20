@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 )
 
@@ -19,10 +20,15 @@ func gerarCSRFToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func DefinirCSRFToken(w http.ResponseWriter) error {
+func DefinirCSRFToken(w http.ResponseWriter, secure bool) (string, error) {
 	token, err := gerarCSRFToken()
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -30,12 +36,35 @@ func DefinirCSRFToken(w http.ResponseWriter) error {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   secure,
+		SameSite: sameSite,
 		MaxAge:   8 * 60 * 60,
 	})
 
-	return nil
+	return token, nil
+}
+
+// CSRFTokenHandler emite um cookie CSRF e retorna o mesmo token ao frontend.
+// A proteção continua ativa: operações mutáveis precisam enviar o token no cabeçalho.
+func CSRFTokenHandler(secure bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", http.MethodGet)
+			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		token, err := DefinirCSRFToken(w, secure)
+		if err != nil {
+			http.Error(w, "Não foi possível gerar token CSRF", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"csrf_token": token}); err != nil {
+			return
+		}
+	}
 }
 
 func ExigirCSRF(next http.Handler) http.Handler {
@@ -93,13 +122,17 @@ func ExigirCSRF(next http.Handler) http.Handler {
 	})
 }
 
-func LimparCSRFToken(w http.ResponseWriter) {
+func LimparCSRFToken(w http.ResponseWriter, secure bool) {
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     csrfCookieName,
 		Value:    "",
 		Path:     "/",
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   secure,
+		SameSite: sameSite,
 		MaxAge:   -1,
 	})
 }

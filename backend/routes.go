@@ -25,6 +25,11 @@ func configurarRotas(
 	// ROTAS PÚBLICAS EXISTENTES
 	// ============================================================
 
+	// Emite token CSRF legível pela aplicação frontend através da resposta JSON.
+	// Token CSRF: permite que o frontend obtenha o valor sem tentar ler
+	// cookies do domínio da API via document.cookie.
+	mux.HandleFunc("/csrf", middleware.CSRFTokenHandler(authHandler.CookieSecure))
+
 	// Login.
 	mux.Handle(
 		"/login",
