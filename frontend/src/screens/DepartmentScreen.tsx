@@ -27,6 +27,8 @@ interface DepartmentScreenProps {
   onStart: (
     departamentoId: number,
     terminalId: number,
+    departamentoNome: string,
+    terminalNome: string,
   ) => void
   onBack: () => void
 }
@@ -334,7 +336,25 @@ function DepartmentScreen({
   const handleStart = () => {
     if (!podeConectar) return
 
-    onStart(departamentoId, terminalId)
+    const departamento = departamentos.find(
+      (item) => item.id === departamentoId,
+    )
+
+    const terminal = terminais.find(
+      (item) => item.id === terminalId,
+    )
+
+    if (!departamento || !terminal) {
+      setErro('Não foi possível identificar o departamento ou terminal selecionado.')
+      return
+    }
+
+    onStart(
+      departamentoId,
+      terminalId,
+      departamento.nome,
+      terminal.terminal,
+    )
   }
 
   return (

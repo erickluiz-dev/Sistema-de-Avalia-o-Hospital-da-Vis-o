@@ -24,23 +24,6 @@ type GerenciamentoHandler struct {
 	AuditoriaService *services.AuditoriaService
 }
 
-func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-	r.Body = http.MaxBytesReader(w, r.Body, 10<<10)
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(dst); err != nil {
-		http.Error(
-			w,
-			"Dados inválidos",
-			http.StatusBadRequest,
-		)
-		return err
-	}
-
-	return nil
-}
-
 func (h *GerenciamentoHandler) ListarUsuarios(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -109,7 +92,7 @@ func (h *GerenciamentoHandler) CriarUsuario(
 ) {
 	var req models.CriarUsuarioRequest
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -204,7 +187,7 @@ func (h *GerenciamentoHandler) CriarTerminal(
 ) {
 	var req models.CriarTerminalRequest
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -270,7 +253,7 @@ func (h *GerenciamentoHandler) CriarFuncionario(
 ) {
 	var req models.CriarFuncionarioRequest
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -753,7 +736,7 @@ func (h *GerenciamentoHandler) CriarDepartamento(
 		Nome string `json:"nome"`
 	}
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -835,7 +818,7 @@ func (h *GerenciamentoHandler) VincularTerminal(
 		TerminalID *int64 `json:"terminal_id"`
 	}
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -1015,7 +998,7 @@ func (h *GerenciamentoHandler) AtualizarFuncionario(
 		Nome string `json:"nome"`
 	}
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -1095,7 +1078,7 @@ func (h *GerenciamentoHandler) AtualizarTerminal(
 
 	var req models.CriarTerminalRequest
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -1188,7 +1171,7 @@ func (h *GerenciamentoHandler) AtualizarDepartamento(
 		Nome string `json:"nome"`
 	}
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 
@@ -1281,7 +1264,7 @@ func (h *GerenciamentoHandler) AtualizarUsuario(
 		SenhaAtual string `json:"senha_atual"`
 	}
 
-	if err := decodeJSON(w, r, &req); err != nil {
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
 		return
 	}
 

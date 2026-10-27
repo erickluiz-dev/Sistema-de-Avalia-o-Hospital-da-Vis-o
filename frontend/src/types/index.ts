@@ -5,6 +5,8 @@ export type Screen =
   | 'home'
   | 'department'
   | 'connection'
+  | 'employee-validation'
+  | 'patient-review'
   | 'survey'
   | 'dashboard'
   | 'management'

@@ -84,6 +84,22 @@ func configurarRotas(
 		// POSTs permanecem sob o middleware global CSRF.
 		mux.Handle("/atendimento/presenca", http.HandlerFunc(atendimentoHandler.Presence))
 		mux.Handle("/atendimento/status", http.HandlerFunc(atendimentoHandler.Status))
+		// O GET de dados é exclusivo do papel paciente; o POST exige autenticação.
+		mux.Handle("/atendimento/dados", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				auth(atendimentoHandler.PatientData).ServeHTTP(w, r)
+				return
+			}
+			atendimentoHandler.PatientData(w, r)
+		}))
+		// O tablet envia a conferência; apenas funcionário autenticado consulta o resultado.
+		mux.Handle("/atendimento/revisao", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				auth(atendimentoHandler.PatientReview).ServeHTTP(w, r)
+				return
+			}
+			atendimentoHandler.PatientReview(w, r)
+		}))
 		mux.Handle("/atendimento/autorizar", auth(atendimentoHandler.Authorize))
 		mux.Handle("/atendimento/sair", http.HandlerFunc(atendimentoHandler.Leave))
 	}
