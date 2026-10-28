@@ -217,9 +217,8 @@ func (m *Manager) Authorize(departmentID, terminalID int, clientID string) error
 	if session == nil || !m.clientOnlineLocked(session, clientID, RoleFuncionario, now) || !m.hasOnlineRoleLocked(session, RolePaciente, now) {
 		return errors.New("os dois dispositivos precisam estar conectados antes da liberação")
 	}
-	if !session.DataSubmitted || !session.ReviewSubmitted {
-		return errors.New("o paciente precisa conferir e enviar os dados antes da liberação")
-	}
+	// A conferência dos dados é opcional. A autorização depende da presença
+	// dos dois dispositivos no mesmo atendimento, não do envio de dados pessoais.
 	session.Authorized = true
 	session.UpdatedAt = now
 	return nil
@@ -299,9 +298,7 @@ func validateSessionInput(departmentID, terminalID int, clientID string, role Ro
 
 func validatePatientData(data PatientData) error {
 	data = normalizePatientData(data)
-	if data.Nome == "" {
-		return errors.New("o nome do paciente é obrigatório")
-	}
+	// Nome, telefone e e-mail são opcionais neste fluxo.
 	if len(data.Nome) > 200 || len(data.Telefone) > 32 || len(data.Email) > 254 {
 		return errors.New("um ou mais campos excedem o tamanho permitido")
 	}

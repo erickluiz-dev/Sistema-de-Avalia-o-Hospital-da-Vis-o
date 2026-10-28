@@ -56,7 +56,6 @@ export default function ConnectionScreen({
   }
 
   const authorizedCalled = useRef(false)
-  const reviewRequested = useRef(false)
   const onAuthorizedRef = useRef(onAuthorized)
   const onConnectedRef = useRef(onConnected)
   const connectedCalled = useRef(false)
@@ -108,10 +107,6 @@ export default function ConnectionScreen({
 
         setStatus(data)
         setErro('')
-        if (modo === 'paciente' && data.data_submitted) {
-          reviewRequested.current = true
-        }
-
         // Marca antes da navegação para impedir que o cleanup remova a presença
         // quando o paciente avança para a tela de avaliação.
         if (modo === 'paciente' && data.authorized && !authorizedCalled.current) {
@@ -141,17 +136,16 @@ export default function ConnectionScreen({
       ativo = false
       window.clearInterval(intervalId)
 
-      // Se o paciente foi autorizado, App.tsx assume a presença durante a
-      // avaliação usando o mesmo client_id. Não remova essa presença aqui.
-      if (!(modo === 'paciente' && (authorizedCalled.current || reviewRequested.current))) {
-        // Pequeno atraso para distinguir um unmount real de uma remontagem imediata.
+      // O App assume/continua o heartbeat do tablet em patient-review e survey.
+      // A desmontagem também ocorre em transições internas; enviar /sair aqui
+      // poderia apagar a presença antes do POST /atendimento/revisao.
+      if (modo !== 'paciente') {
         leaveTimerRef.current = window.setTimeout(() => {
           leaveTimerRef.current = null
           void apiFetch('/atendimento/sair', {
             method: 'POST',
             body: JSON.stringify(payload()),
           }).catch((error) => {
-            // A presença expira pelo TTL do backend se a saída não puder ser enviada.
             console.warn('Não foi possível encerrar a presença do dispositivo:', error)
           })
         }, 250)
@@ -193,12 +187,28 @@ export default function ConnectionScreen({
             }}
         /></div>
 
-        <h1 className="text-center text-[50px] font-bold text-gray-600 mb-8">
-          Seja Bem Vindo!
-        </h1>
-        <p className="mt-2 text-center text-[20px] text-sm leading-relaxed text-gray-500">
-          Fale com um de nossos atendentes
-        </p>
+        <div className="w-full max-w-2xl text-center">
+            
+            <h1 className="mt-3 text-4xl lg:text-6xl font-bold text-[#50626E] tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Seja bem-vindo!
+            </h1>
+            <p className="mt-12 mx-auto max-w-lg text-lg lg:text-xl leading-relaxed text-gray-500">
+              Que bom ter você aqui. Fique à vontade, seu atendimento começará em breve.
+            </p>
+
+            <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#00B5CC]/30 bg-[#E0F2FE] px-5 py-3 text-sm font-medium text-[#00B5CC]">
+              <img 
+                src="/icon.ico" 
+                alt="Ícone" 
+                style={{ 
+                  width: '8%',  
+                  height: '8%', 
+                  objectFit: 'contain' 
+                }} 
+              />
+              Fale com um de nossos atendentes 
+            </div>
+          </div>
 
       </main>
     </div>

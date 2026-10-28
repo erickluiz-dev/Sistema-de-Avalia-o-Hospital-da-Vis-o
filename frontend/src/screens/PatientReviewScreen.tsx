@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Send } from 'lucide-react'
-import NavBar from '../components/NavBar'
+import { Send } from 'lucide-react'
 import type { Usuario } from '../types'
 import type { PatientData } from './EmployeeValidationScreen'
 
@@ -16,6 +15,15 @@ interface PatientReviewScreenProps {
   onBack: () => void
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\\D/g, '').slice(0, 11)
+  if (!digits) return ''
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
 export default function PatientReviewScreen({
   initialData,
   departamentoNome,
@@ -24,16 +32,22 @@ export default function PatientReviewScreen({
   onSubmitCorrections,
   onBack,
 }: PatientReviewScreenProps) {
-  const [form, setForm] = useState<PatientData>(initialData)
+  const [form, setForm] = useState<PatientData>({
+    ...initialData,
+    telefone: formatPhone(initialData.telefone),
+  })
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
-    setForm(initialData)
+    setForm({ ...initialData, telefone: formatPhone(initialData.telefone) })
   }, [initialData.nome, initialData.telefone, initialData.email])
 
   const update = (key: keyof PatientData, value: string) => {
-    setForm(current => ({ ...current, [key]: value }))
+    setForm(current => ({
+      ...current,
+      [key]: key === 'telefone' ? formatPhone(value) : value,
+    }))
     setErro('')
   }
 
@@ -42,18 +56,13 @@ export default function PatientReviewScreen({
   ) => {
     event.preventDefault()
 
-    if (!form.nome.trim()) {
-      setErro('Informe seu nome antes de enviar.')
-      return
-    }
-
     setEnviando(true)
     setErro('')
 
     try {
       await onSubmitCorrections({
         nome: form.nome.trim(),
-        telefone: form.telefone.trim(),
+        telefone: formatPhone(form.telefone),
         email: form.email.trim(),
       })
     } catch {
@@ -81,7 +90,7 @@ export default function PatientReviewScreen({
       key: 'telefone',
       label: 'Telefone para retorno',
       type: 'tel',
-      maxLength: 32,
+      maxLength: 15,
       autoComplete: 'tel',
     },
     {
@@ -140,13 +149,15 @@ export default function PatientReviewScreen({
                 <input
                   type={field.type}
                   value={form[field.key]}
+                  inputMode={field.key === 'telefone' ? 'numeric' : undefined}
+                  placeholder={field.key === 'telefone' ? '' : undefined}
                   onChange={event =>
                     update(field.key, event.target.value)
                   }
                   autoComplete={field.autoComplete}
                   maxLength={field.maxLength}
                   disabled={enviando}
-                  required={field.key === 'nome'}
+                  required={false}
                   className="h-[58px] w-full rounded-xl border border-slate-200 bg-white px-4 text-base outline-none transition focus:border-[#00B5CC] focus:ring-2 focus:ring-cyan-100 disabled:cursor-wait disabled:bg-slate-50"
                 />
               </label>

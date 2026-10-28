@@ -159,7 +159,7 @@ export default function App() {
    */
   useEffect(() => {
     if (
-      screen !== 'survey' ||
+      !['patient-review', 'survey'].includes(screen) ||
       modoAtendimento !== 'paciente' ||
       departamentoId === null ||
       terminalId === null
@@ -211,15 +211,9 @@ export default function App() {
     return () => {
       ativo = false
       window.clearInterval(interval)
-
-      // Não envia /sair durante uma troca interna de telas. Este efeito só
-      // é montado na tela de avaliação; seu cleanup indica que ela foi deixada.
-      void apiFetch('/atendimento/sair', {
-        method: 'POST',
-        body: payload,
-      }).catch((error) => {
-        console.warn('Não foi possível encerrar a presença do tablet:', error)
-      })
+      // Não chamar /atendimento/sair no cleanup: ele também executa quando
+      // a tela muda internamente de patient-review para survey/connection.
+      // Se o dispositivo fechar a página, a presença expira pelo TTL do backend.
     }
   }, [screen, modoAtendimento, departamentoId, terminalId])
 

@@ -14,27 +14,59 @@ const ROTAS_PUBLICAS_SEM_CSRF = new Set([
   '/redefinir-senha',
 ])
 
+// O token é reutilizado durante a vida deste módulo para evitar uma chamada
+// /csrf a cada POST. A Promise compartilhada impede chamadas simultâneas duplicadas.
+let csrfTokenCache: string | null = null
+let csrfTokenPromise: Promise<string> | null = null
+
 async function obterTokenCSRF(): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/csrf`, {
-    method: 'GET',
-    credentials: 'include',
-    cache: 'no-store',
-    headers: {
-      Accept: 'application/json',
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Não foi possível obter o token CSRF (${response.status})`)
+  if (csrfTokenCache) {
+    return csrfTokenCache
   }
 
-  const data = (await response.json()) as CSRFResponse
-
-  if (!data.csrf_token) {
-    throw new Error('O backend não retornou o token CSRF')
+  if (csrfTokenPromise) {
+    return csrfTokenPromise
   }
 
-  return data.csrf_token
+  csrfTokenPromise = (async () => {
+    const response = await fetch(`${API_BASE_URL}/csrf`, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Não foi possível obter o token CSRF (${response.status})`,
+      )
+    }
+
+    const data = (await response.json()) as CSRFResponse
+
+    if (!data.csrf_token) {
+      throw new Error('O backend não retornou o token CSRF')
+    }
+
+    csrfTokenCache = data.csrf_token
+    return data.csrf_token
+  })()
+
+  try {
+    return await csrfTokenPromise
+  } finally {
+    csrfTokenPromise = null
+  }
+}
+
+/**
+ * Invalida o token em memória. A próxima requisição protegida obterá outro.
+ * Não faz retry automático de POSTs para evitar duplicar operações.
+ */
+function invalidarTokenCSRF(): void {
+  csrfTokenCache = null
 }
 
 export async function apiFetch(
@@ -45,19 +77,30 @@ export async function apiFetch(
   const method = (options.method || 'GET').toUpperCase()
   const headers = new Headers(options.headers)
 
-  headers.set('Content-Type', 'application/json')
+  if (options.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
 
-  if (
+  const usaCSRF =
     ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
     !ROTAS_PUBLICAS_SEM_CSRF.has(normalizedEndpoint)
-  ) {
+
+  if (usaCSRF) {
     const csrfToken = await obterTokenCSRF()
     headers.set('X-CSRF-Token', csrfToken)
   }
 
-  return fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     ...options,
     credentials: 'include',
     headers,
   })
+
+  // Se o servidor responder 403 em uma rota protegida, invalida o token
+  // para que a próxima ação tente buscar um token novo. Não repete a operação.
+  if (usaCSRF && response.status === 403) {
+    invalidarTokenCSRF()
+  }
+
+  return response
 }
