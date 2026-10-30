@@ -173,6 +173,28 @@ func (h *AtendimentoHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"authorized": true})
 }
 
+// Complete encerra o atendimento após a avaliação ser salva com sucesso.
+func (h *AtendimentoHandler) Complete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req atendimentoRequest
+	if err := decodeAtendimentoRequest(w, r, &req); err != nil {
+		http.Error(w, "Requisição inválida", http.StatusBadRequest)
+		return
+	}
+	if req.Role != string(atendimento.RolePaciente) {
+		http.Error(w, "Somente o tablet do paciente pode finalizar o atendimento", http.StatusForbidden)
+		return
+	}
+	if err := h.Manager.Complete(req.DepartmentID, req.TerminalID, req.ClientID); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"completed": true})
+}
+
 func (h *AtendimentoHandler) Leave(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w)

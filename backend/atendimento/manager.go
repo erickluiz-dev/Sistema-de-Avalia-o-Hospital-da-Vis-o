@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const presenceTTL = 8 * time.Second
+const presenceTTL = 15 * time.Second
 
 type Role string
 
@@ -38,6 +38,7 @@ type Session struct {
 	DataSubmitted   bool
 	ReviewSubmitted bool
 	Authorized      bool
+	Cycle           int64
 	UpdatedAt       time.Time
 }
 
@@ -56,6 +57,7 @@ type ReviewState struct {
 	ReviewSubmitted bool        `json:"review_submitted"`
 	Authorized      bool        `json:"authorized"`
 	Data            PatientData `json:"data,omitempty"`
+	Cycle           int64       `json:"cycle"`
 }
 
 type Manager struct {
@@ -171,7 +173,7 @@ func (m *Manager) Review(departmentID, terminalID int, clientID string, role Rol
 	if !m.hasOnlineRoleLocked(session, oppositeRole(role), now) {
 		return ReviewState{}, errors.New("o outro dispositivo não está conectado")
 	}
-	state := ReviewState{DataSubmitted: session.DataSubmitted, ReviewSubmitted: session.ReviewSubmitted, Authorized: session.Authorized}
+	state := ReviewState{DataSubmitted: session.DataSubmitted, ReviewSubmitted: session.ReviewSubmitted, Authorized: session.Authorized, Cycle: session.Cycle}
 	if session.DataSubmitted {
 		state.Data = session.PatientData
 	}
@@ -224,6 +226,37 @@ func (m *Manager) Authorize(departmentID, terminalID int, clientID string) error
 	return nil
 }
 
+// Complete encerra o ciclo atual sem remover os dispositivos da sessão.
+// Somente o tablet conectado pode concluir um atendimento autorizado.
+func (m *Manager) Complete(departmentID, terminalID int, clientID string) error {
+	if err := validateSessionInput(departmentID, terminalID, clientID, RolePaciente); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := m.now()
+	m.pruneLocked(now)
+	session := m.sessions[sessionKey(departmentID, terminalID)]
+	if session == nil || !m.clientOnlineLocked(session, clientID, RolePaciente, now) {
+		return errors.New("tablet não está conectado a este atendimento")
+	}
+	if !m.hasOnlineRoleLocked(session, RoleFuncionario, now) {
+		return errors.New("computador do funcionário não está conectado")
+	}
+	if !session.Authorized {
+		// Requisição repetida após uma finalização já concluída: não altera
+		// um novo fluxo que eventualmente tenha começado depois.
+		if !session.DataSubmitted && !session.ReviewSubmitted && session.PatientData == (PatientData{}) {
+			return nil
+		}
+		return errors.New("não existe avaliação autorizada para finalizar")
+	}
+	resetFlowLocked(session)
+	session.Cycle++
+	session.UpdatedAt = now
+	return nil
+}
+
 func (m *Manager) Leave(departmentID, terminalID int, clientID string) {
 	if departmentID < 1 || terminalID < 1 || clientID == "" {
 		return
@@ -249,7 +282,7 @@ func (m *Manager) statusLocked(session *Session, clientID string, role Role, now
 	status := Status{
 		Connected:         ownOnline && counterpartOnline,
 		CounterpartOnline: counterpartOnline,
-		Authorized:        ownOnline && session.Authorized,
+		Authorized:        ownOnline && counterpartOnline && session.Authorized,
 		DataSubmitted:     session.DataSubmitted,
 		ReviewSubmitted:   session.ReviewSubmitted,
 		Role:              role,

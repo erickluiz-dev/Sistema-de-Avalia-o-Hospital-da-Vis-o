@@ -179,7 +179,7 @@ export default function EmployeeValidationScreen({
           <button type="button" disabled={enviando || status === 'survey'} onClick={() => void validate()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white hover:bg-[#01899b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}>
             <Send size={17} />{enviando ? 'Enviando...' : hasCorrections ? 'Enviar dados' : 'Enviar dados'}
           </button>
-          <button type="button" disabled={!canRelease} onClick={() => void onReleaseSurvey?.()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-7 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 sm:w-auto">
+          <button type="button" disabled={!canRelease} onClick={() => void onReleaseSurvey?.()}  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white hover:bg-[#01899b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}>
             <Smile size={18} />Avaliar
           </button>
         </div>

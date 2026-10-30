@@ -6,12 +6,14 @@ import { RATINGS } from '../constants/ratings'
 type SurveyScreenProps = {
   departamentoId: number
   terminalId: number
+  clientId: string
   onBack: () => void
 }
 
 export default function SurveyScreen({
   departamentoId,
   terminalId,
+  clientId,
   onBack,
 }: SurveyScreenProps) {
   const [selected, setSelected] = useState<RatingKey | null>(null)
@@ -19,21 +21,17 @@ export default function SurveyScreen({
   const [comment, setComment] = useState('')  
   const [countdown, setCountdown] = useState(2)
   const [enviando, setEnviando] = useState(false)
+  const [erroFinalizacao, setErroFinalizacao] = useState(false)
 
   useEffect(() => {
-    if (!submitted) return
-
+    if (!submitted || erroFinalizacao) return
     if (countdown <= 0) {
       onBack()
       return
     }
-
-    const timeout = window.setTimeout(() => {
-      setCountdown((prev) => prev - 1)
-    }, 1000)
-
+    const timeout = window.setTimeout(() => setCountdown((prev) => prev - 1), 1000)
     return () => window.clearTimeout(timeout)
-  }, [submitted, countdown, onBack])
+  }, [submitted, erroFinalizacao, countdown, onBack])
 
   const enviarAvaliacao = async (nota: RatingKey) => {
     try {
@@ -84,9 +82,25 @@ export default function SurveyScreen({
         return
       }
 
+      const finalizacao = await apiFetch('/atendimento/finalizar', {
+        method: 'POST',
+        body: JSON.stringify({
+          department_id: departamentoId,
+          terminal_id: terminalId,
+          client_id: clientId,
+          role: 'paciente',
+        }),
+      })
+
+      if (!finalizacao.ok) {
+        console.error('Avaliação salva, mas não foi possível finalizar o atendimento:', await finalizacao.text())
+        setErroFinalizacao(true)
+        setSubmitted(true)
+        return
+      }
+
       setSubmitted(true)
       setCountdown(2)
-      
     } finally {
       setEnviando(false)
     }
@@ -130,6 +144,16 @@ export default function SurveyScreen({
             <p className="text-gray-500 mt-2 text-lg">
               Sua avaliação foi registrada com sucesso.
             </p>
+            {erroFinalizacao && (
+              <div className="mt-4 max-w-md rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                A avaliação foi salva, mas não conseguimos liberar o próximo atendimento. Verifique a conexão e tente novamente.
+                <button className="mt-3 block w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white" onClick={async () => {
+                  const response = await apiFetch('/atendimento/finalizar', { method: 'POST', body: JSON.stringify({ department_id: departamentoId, terminal_id: terminalId, client_id: clientId, role: 'paciente' }) })
+                  if (response.ok) { setErroFinalizacao(false); setCountdown(2) }
+                  else alert('Não foi possível finalizar. Verifique se o computador do funcionário continua conectado.')
+                }}>Tentar novamente</button>
+              </div>
+            )}
 
             {sel && (
               <div
@@ -141,13 +165,13 @@ export default function SurveyScreen({
             )}
           </div>
 
-          <p className="text-gray-400 text-sm">
+          {!erroFinalizacao && <p className="text-gray-400 text-sm">
             Redirecionando em{' '}
             <span className="font-bold text-gray-600">
               {countdown}s
             </span>
             …
-          </p>
+          </p>}
         </div>
       </div>
     )
@@ -173,7 +197,20 @@ export default function SurveyScreen({
           }}
         />
 
-        
+        <button
+          onClick={onBack}
+          className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer transition-colors flex items-center gap-1.5"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+          Voltar
+        </button>
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-10">

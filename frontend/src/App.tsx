@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 import { apiFetch } from './services/api'
 
@@ -59,7 +59,7 @@ export default function App() {
   const [departamentoNome, setDepartamentoNome] = useState('')
   const [terminalNome, setTerminalNome] = useState('')
 
-  const [mostrarBoasVindas, setMostrarBoasVindas] = useState(false)
+  const cicloAtendimentoRef = useRef<number | null>(null)
 
   // ─── Verificação inicial ───────────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ export default function App() {
    */
   useEffect(() => {
     if (
-      !['patient-review', 'survey'].includes(screen) ||
+      !['patient-review', 'survey'].includes(screen)||
       modoAtendimento !== 'paciente' ||
       departamentoId === null ||
       terminalId === null
@@ -208,8 +208,7 @@ export default function App() {
 
     const interval = window.setInterval(() => {
       void heartbeat()
-    }, 2000)
-
+    }, 5000)
     return () => {
       ativo = false
       window.clearInterval(interval)
@@ -250,7 +249,7 @@ export default function App() {
     }
 
     void heartbeat()
-    const interval = window.setInterval(() => void heartbeat(), 2000)
+    const interval = window.setInterval(() => void heartbeat(), 5000)
     return () => { ativo = false; window.clearInterval(interval) }
   }, [screen, modoAtendimento, departamentoId, terminalId])
 
@@ -340,6 +339,19 @@ export default function App() {
           review_submitted?: boolean
           authorized?: boolean
           data?: PatientData
+          cycle?: number
+        }
+        if (ativo && typeof state.cycle === 'number') {
+          if (cicloAtendimentoRef.current === null) {
+            cicloAtendimentoRef.current = state.cycle
+          } else if (state.cycle !== cicloAtendimentoRef.current) {
+            cicloAtendimentoRef.current = state.cycle
+            const dadosVazios = { nome: '', telefone: '', email: '' }
+            setDadosValidacao(dadosVazios)
+            setDadosOriginais(dadosVazios)
+            setCorrecoesValidacao({})
+            setStatusValidacao('waiting')
+          }
         }
         if (ativo && state.review_submitted && state.data) {
           const corrigidos = state.data
@@ -359,7 +371,7 @@ export default function App() {
     }
 
     void consultarRevisao()
-    const interval = window.setInterval(() => void consultarRevisao(), 2000)
+    const interval = window.setInterval(() => void consultarRevisao(), 5000)
     return () => {
       ativo = false
       window.clearInterval(interval)
@@ -422,87 +434,52 @@ export default function App() {
       {/* HOME */}
       {screen === 'home' && (
         <>
-          {mostrarBoasVindas ? (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
-              <img
-                src="/logo.png"
-                alt="Hospital da Visão"
-                className="w-64 object-contain mb-12"
-              />
+          <HomeScreen
+            usuario={usuario}
+            onNav={setScreen}
+            onLogout={handleLogout}
+            onStartSurvey={(modo) => {
+              setModoAtendimento(modo)
+              setMostrarDepartamento(true)
+            }}
+          />
 
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Bem-vindo ao Hospital da Visão!
-              </h1>
+          {mostrarDepartamento && (
+            <DepartmentScreen
+              modo={modoAtendimento}
+              onStart={(
+                departamentoIdSelecionado,
+                terminalIdSelecionado,
+                departamentoNomeSelecionado,
+                terminalNomeSelecionado,
+              ) => {
+                setDepartamentoId(departamentoIdSelecionado)
+                setTerminalId(terminalIdSelecionado)
+                setDepartamentoNome(departamentoNomeSelecionado)
+                setTerminalNome(terminalNomeSelecionado)
 
-              <p className="text-lg text-gray-500 max-w-xl mb-10">
-                Estamos prontos para oferecer o melhor atendimento.
-                Para começar, toque no botão abaixo.
-              </p>
+                cicloAtendimentoRef.current = null
+                setMostrarDepartamento(false)
+                setStatusValidacao('waiting')
 
-               <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#00B5CC]/30 bg-[#E0F2FE] px-5 py-3 text-sm font-medium text-[#00B5CC]">
-              <img 
-                src="/icon.ico" 
-                alt="Ícone" 
-                style={{ 
-                  width: '8%',  
-                  height: '8%', 
-                  objectFit: 'contain' 
-                }} 
-              />
-              Fale com um de nossos atendentes 
-            </div>
-            </div>
-          ) : (
-            <>
-              <HomeScreen
-                usuario={usuario}
-                onNav={setScreen}
-                onLogout={handleLogout}
-                onStartSurvey={(modo) => {
-                  setModoAtendimento(modo)
-                  setMostrarDepartamento(true)
-                }}
-              />
+                const dadosVazios = {
+                  nome: '',
+                  telefone: '',
+                  email: '',
+                }
 
-              {mostrarDepartamento && (
-                <DepartmentScreen
-                  modo={modoAtendimento}
-                  onStart={(
-                    departamentoIdSelecionado,
-                    terminalIdSelecionado,
-                    departamentoNomeSelecionado,
-                    terminalNomeSelecionado,
-                  ) => {
-                    setDepartamentoId(departamentoIdSelecionado)
-                    setTerminalId(terminalIdSelecionado)
-                    setDepartamentoNome(departamentoNomeSelecionado)
-                    setTerminalNome(terminalNomeSelecionado)
-                    setMostrarDepartamento(false)
+                setDadosValidacao(dadosVazios)
+                setDadosOriginais(dadosVazios)
+                setCorrecoesValidacao({})
 
-                    setStatusValidacao('waiting')
-
-                    const dadosVazios = {
-                      nome: '',
-                      telefone: '',
-                      email: '',
-                    }
-
-                    setDadosValidacao(dadosVazios)
-                    setDadosOriginais(dadosVazios)
-                    setCorrecoesValidacao({})
-
-                    if (modoAtendimento === 'funcionario') {
-                      setScreen('employee-validation')
-                    } else {
-                      setScreen('connection')
-                    }
-                  }}
-                  onBack={() => {
-                    setMostrarDepartamento(false)
-                  }}
-                />
-              )}
-            </>
+                if (modoAtendimento === 'funcionario') {
+                  setScreen('employee-validation')
+                } else {
+                  setScreen('connection')
+                }
+              }}
+              onBack={() => setMostrarDepartamento(false)}
+            />
           )}
         </>
       )}
@@ -627,16 +604,27 @@ export default function App() {
         departamentoId !== null &&
         terminalId !== null && (
           <SurveyScreen
-            departamentoId={departamentoId}
-            terminalId={terminalId}
-            onBack={() => {
-              setDepartamentoId(null)
-              setTerminalId(null)
-              setMostrarDepartamento(false)
-              setMostrarBoasVindas(true)
-              setScreen('home')
-            }}
-          />
+          departamentoId={departamentoId}
+          terminalId={terminalId}
+          clientId={getClientId() ?? ''}
+          onBack={() => {
+            const dadosVazios = {
+              nome: '',
+              telefone: '',
+              email: '',
+            }
+
+            setDadosValidacao(dadosVazios)
+            setDadosOriginais(dadosVazios)
+            setCorrecoesValidacao({})
+            setStatusValidacao('waiting')
+
+            cicloAtendimentoRef.current = null
+
+            // Preserva a conexão e retorna à tela original.
+            setScreen('connection')
+          }}
+        />
         )}
 
       {/* DASHBOARD */}

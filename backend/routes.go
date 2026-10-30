@@ -5,6 +5,7 @@ import (
 	"backend/handlers"
 	"backend/middleware"
 	"net/http"
+	"time"
 )
 
 func configurarRotas(
@@ -20,9 +21,14 @@ func configurarRotas(
 ) http.Handler {
 	mux := http.NewServeMux()
 
-	// ============================================================
-	// ROTAS PÚBLICAS EXISTENTES
-	// ============================================================
+	// Limite separado para o fluxo tablet/computador.
+	// Com polling de 5s, o fluxo normal usa aproximadamente 48 req/min
+	// somando os dois dispositivos. O limite de 120/min mantém margem
+	// para oscilações e outras chamadas sem desativar a proteção.
+	atendimentoLimiter := middleware.NewRateLimiter(120, time.Minute)
+	atendimentoLimit := func(next http.Handler) http.Handler {
+		return atendimentoLimiter.Middleware(next)
+	}
 
 	mux.HandleFunc("/csrf", middleware.CSRFTokenHandler(authHandler.CookieSecure))
 
@@ -52,10 +58,6 @@ func configurarRotas(
 		}
 	}))
 
-	// ============================================================
-	// MIDDLEWARES DE AUTENTICAÇÃO
-	// ============================================================
-
 	auth := func(next http.HandlerFunc) http.Handler {
 		return middleware.ExigirAutenticacao(
 			authHandler.Authenticate,
@@ -70,50 +72,60 @@ func configurarRotas(
 		)
 	}
 
-	// ============================================================
-	// ROTAS DE ATENDIMENTO
-	// ============================================================
-
-	// Mantém compatibilidade com chamadas antigas que não fornecem manager.
-	// Em produção, main.go deve sempre passar o manager para habilitar as rotas.
+	// Rotas de atendimento recebem o limitador próprio, não o limite geral.
+	// A autenticação e o CSRF continuam ativos conforme a regra de cada rota.
 	if len(atendimentoManagers) > 0 && atendimentoManagers[0] != nil {
 		atendimentoHandler := &handlers.AtendimentoHandler{
 			Manager: atendimentoManagers[0],
 		}
 
-		// POSTs permanecem sob o middleware global CSRF.
-		mux.Handle("/atendimento/presenca", http.HandlerFunc(atendimentoHandler.Presence))
-		mux.Handle("/atendimento/status", http.HandlerFunc(atendimentoHandler.Status))
-		// O GET de dados é exclusivo do papel paciente; o POST exige autenticação.
-		mux.Handle("/atendimento/dados", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				auth(atendimentoHandler.PatientData).ServeHTTP(w, r)
-				return
-			}
-			atendimentoHandler.PatientData(w, r)
-		}))
-		// O tablet envia a conferência; apenas funcionário autenticado consulta o resultado.
-		mux.Handle("/atendimento/revisao", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				auth(atendimentoHandler.PatientReview).ServeHTTP(w, r)
-				return
-			}
-			atendimentoHandler.PatientReview(w, r)
-		}))
-		mux.Handle("/atendimento/autorizar", auth(atendimentoHandler.Authorize))
-		mux.Handle("/atendimento/sair", http.HandlerFunc(atendimentoHandler.Leave))
-	}
+		mux.Handle(
+			"/atendimento/presenca",
+			atendimentoLimit(http.HandlerFunc(atendimentoHandler.Presence)),
+		)
+		mux.Handle(
+			"/atendimento/status",
+			atendimentoLimit(http.HandlerFunc(atendimentoHandler.Status)),
+		)
 
-	// ============================================================
-	// ROTAS AUTENTICADAS EXISTENTES
-	// ============================================================
+		mux.Handle(
+			"/atendimento/dados",
+			atendimentoLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodPost {
+					auth(atendimentoHandler.PatientData).ServeHTTP(w, r)
+					return
+				}
+				atendimentoHandler.PatientData(w, r)
+			})),
+		)
+
+		mux.Handle(
+			"/atendimento/revisao",
+			atendimentoLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet {
+					auth(atendimentoHandler.PatientReview).ServeHTTP(w, r)
+					return
+				}
+				atendimentoHandler.PatientReview(w, r)
+			})),
+		)
+
+		mux.Handle(
+			"/atendimento/autorizar",
+			atendimentoLimit(auth(atendimentoHandler.Authorize)),
+		)
+		mux.Handle(
+			"/atendimento/finalizar",
+			atendimentoLimit(http.HandlerFunc(atendimentoHandler.Complete)),
+		)
+		mux.Handle(
+			"/atendimento/sair",
+			atendimentoLimit(http.HandlerFunc(atendimentoHandler.Leave)),
+		)
+	}
 
 	mux.Handle("/me", auth(authHandler.Me))
 	mux.Handle("/logout", auth(authHandler.Logout))
-
-	// ============================================================
-	// ROTAS ADMINISTRATIVAS EXISTENTES
-	// ============================================================
 
 	mux.Handle("/admin/avaliacoes", admin(avaliacaoHandler.Listar))
 	mux.Handle("/avaliacoes/estatisticas", admin(avaliacaoHandler.Estatisticas))
@@ -149,15 +161,14 @@ func configurarRotas(
 		}
 	})))
 
-	// ============================================================
-	// MIDDLEWARES GLOBAIS
-	// ============================================================
-
+	// O limitador geral continua protegendo todas as demais rotas.
+	// Somente /atendimento/ é excluído daqui, pois já possui limitador próprio.
 	return middleware.SecurityHeaders(
 		middleware.CORS(
 			allowedOrigins,
-			rateLimiter.Middleware(
+			rateLimiter.MiddlewareExcept(
 				middleware.ExigirCSRF(mux),
+				"/atendimento/",
 			),
 		),
 	)
