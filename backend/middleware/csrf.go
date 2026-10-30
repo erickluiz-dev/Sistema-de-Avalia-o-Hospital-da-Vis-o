@@ -12,14 +12,14 @@ const csrfCookieName = "csrf_token"
 
 func gerarCSRFToken() (string, error) {
 	bytes := make([]byte, 32)
-
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-
 	return hex.EncodeToString(bytes), nil
 }
 
+// DefinirCSRFToken cria um token novo e o grava no cookie.
+// Use CSRFTokenHandler para obter/reutilizar o token durante a sessão do navegador.
 func DefinirCSRFToken(w http.ResponseWriter, secure bool) (string, error) {
 	token, err := gerarCSRFToken()
 	if err != nil {
@@ -32,25 +32,27 @@ func DefinirCSRFToken(w http.ResponseWriter, secure bool) (string, error) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     csrfCookieName,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: false,
-		Secure:   secure,
-		SameSite: sameSite,
-		MaxAge:   8 * 60 * 60,
+		Name: csrfCookieName, Value: token, Path: "/",
+		HttpOnly: false, Secure: secure, SameSite: sameSite,
+		MaxAge: 8 * 60 * 60,
 	})
-
 	return token, nil
 }
 
-// CSRFTokenHandler emite um cookie CSRF e retorna o mesmo token ao frontend.
-// A proteção continua ativa: operações mutáveis precisam enviar o token no cabeçalho.
+// CSRFTokenHandler reutiliza o cookie existente. Gerar um token novo em cada GET
+// pode substituir o cookie enquanto o frontend ainda envia o token anterior.
 func CSRFTokenHandler(secure bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.Header().Set("Allow", http.MethodGet)
 			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if cookie, err := r.Cookie(csrfCookieName); err == nil && cookie.Value != "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(map[string]string{"csrf_token": cookie.Value})
 			return
 		}
 
@@ -61,9 +63,8 @@ func CSRFTokenHandler(secure bool) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]string{"csrf_token": token}); err != nil {
-			return
-		}
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(map[string]string{"csrf_token": token})
 	}
 }
 
@@ -85,36 +86,19 @@ func ExigirCSRF(next http.Handler) http.Handler {
 		}
 
 		cookie, err := r.Cookie(csrfCookieName)
-
 		if err != nil || cookie.Value == "" {
-			http.Error(
-				w,
-				"Token CSRF ausente",
-				http.StatusForbidden,
-			)
+			http.Error(w, "Token CSRF ausente", http.StatusForbidden)
 			return
 		}
 
 		headerToken := r.Header.Get("X-CSRF-Token")
-
 		if headerToken == "" {
-			http.Error(
-				w,
-				"Token CSRF ausente",
-				http.StatusForbidden,
-			)
+			http.Error(w, "Token CSRF ausente", http.StatusForbidden)
 			return
 		}
 
-		if subtle.ConstantTimeCompare(
-			[]byte(cookie.Value),
-			[]byte(headerToken),
-		) != 1 {
-			http.Error(
-				w,
-				"Token CSRF inválido",
-				http.StatusForbidden,
-			)
+		if subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(headerToken)) != 1 {
+			http.Error(w, "Token CSRF inválido", http.StatusForbidden)
 			return
 		}
 
@@ -128,11 +112,7 @@ func LimparCSRFToken(w http.ResponseWriter, secure bool) {
 		sameSite = http.SameSiteNoneMode
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:     csrfCookieName,
-		Value:    "",
-		Path:     "/",
-		Secure:   secure,
-		SameSite: sameSite,
-		MaxAge:   -1,
+		Name: csrfCookieName, Value: "", Path: "/",
+		Secure: secure, SameSite: sameSite, MaxAge: -1,
 	})
 }

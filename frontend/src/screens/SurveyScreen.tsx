@@ -1,5 +1,5 @@
 import type { RatingKey } from '../types'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { apiFetch } from '../services/api'
 import { RATINGS } from '../constants/ratings'
 
@@ -19,6 +19,21 @@ export default function SurveyScreen({
   const [comment, setComment] = useState('')  
   const [countdown, setCountdown] = useState(2)
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    if (!submitted) return
+
+    if (countdown <= 0) {
+      onBack()
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setCountdown((prev) => prev - 1)
+    }, 1000)
+
+    return () => window.clearTimeout(timeout)
+  }, [submitted, countdown, onBack])
 
   const enviarAvaliacao = async (nota: RatingKey) => {
     try {
@@ -71,21 +86,7 @@ export default function SurveyScreen({
 
       setSubmitted(true)
       setCountdown(2)
-
-      const interval = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval)
-
-            setSelected(null)
-            setSubmitted(false)
-
-            return 2
-          }
-
-          return prev - 1
-        })
-      }, 1000)
+      
     } finally {
       setEnviando(false)
     }
@@ -172,20 +173,7 @@ export default function SurveyScreen({
           }}
         />
 
-        <button
-          onClick={onBack}
-          className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer transition-colors flex items-center gap-1.5"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-          </svg>
-          Voltar
-        </button>
+        
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-10">

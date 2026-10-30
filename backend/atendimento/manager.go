@@ -249,7 +249,7 @@ func (m *Manager) statusLocked(session *Session, clientID string, role Role, now
 	status := Status{
 		Connected:         ownOnline && counterpartOnline,
 		CounterpartOnline: counterpartOnline,
-		Authorized:        ownOnline && counterpartOnline && session.Authorized,
+		Authorized:        ownOnline && session.Authorized,
 		DataSubmitted:     session.DataSubmitted,
 		ReviewSubmitted:   session.ReviewSubmitted,
 		Role:              role,

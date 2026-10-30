@@ -59,6 +59,8 @@ export default function App() {
   const [departamentoNome, setDepartamentoNome] = useState('')
   const [terminalNome, setTerminalNome] = useState('')
 
+  const [mostrarBoasVindas, setMostrarBoasVindas] = useState(false)
+
   // ─── Verificação inicial ───────────────────────────────────────────────────
 
   useEffect(() => {
@@ -420,49 +422,87 @@ export default function App() {
       {/* HOME */}
       {screen === 'home' && (
         <>
-          <HomeScreen
-            usuario={usuario}
-            onNav={setScreen}
-            onLogout={handleLogout}
-            onStartSurvey={(modo) => {
-              setModoAtendimento(modo)
-              setMostrarDepartamento(true)
-            }}
-          />
+          {mostrarBoasVindas ? (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
+              <img
+                src="/logo.png"
+                alt="Hospital da Visão"
+                className="w-64 object-contain mb-12"
+              />
 
-          {mostrarDepartamento && (
-            <DepartmentScreen
-              modo={modoAtendimento}
-              onStart={(
-                departamentoIdSelecionado,
-                terminalIdSelecionado,
-                departamentoNomeSelecionado,
-                terminalNomeSelecionado,
-              ) => {
-                setDepartamentoId(departamentoIdSelecionado)
-                setTerminalId(terminalIdSelecionado)
-                setDepartamentoNome(departamentoNomeSelecionado)
-                setTerminalNome(terminalNomeSelecionado)
-                setMostrarDepartamento(false)
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Bem-vindo ao Hospital da Visão!
+              </h1>
 
-                setStatusValidacao('waiting')
-                const dadosVazios = { nome: '', telefone: '', email: '' }
-                setDadosValidacao(dadosVazios)
-                setDadosOriginais(dadosVazios)
-                setCorrecoesValidacao({})
+              <p className="text-lg text-gray-500 max-w-xl mb-10">
+                Estamos prontos para oferecer o melhor atendimento.
+                Para começar, toque no botão abaixo.
+              </p>
 
-                // O funcionário vai para a tela atual de atendimento.
-                // O paciente continua seguindo o fluxo de conexão.
-                if (modoAtendimento === 'funcionario') {
-                  setScreen('employee-validation')
-                } else {
-                  setScreen('connection')
-                }
-              }}
-              onBack={() => {
-                setMostrarDepartamento(false)
-              }}
-            />
+               <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#00B5CC]/30 bg-[#E0F2FE] px-5 py-3 text-sm font-medium text-[#00B5CC]">
+              <img 
+                src="/icon.ico" 
+                alt="Ícone" 
+                style={{ 
+                  width: '8%',  
+                  height: '8%', 
+                  objectFit: 'contain' 
+                }} 
+              />
+              Fale com um de nossos atendentes 
+            </div>
+            </div>
+          ) : (
+            <>
+              <HomeScreen
+                usuario={usuario}
+                onNav={setScreen}
+                onLogout={handleLogout}
+                onStartSurvey={(modo) => {
+                  setModoAtendimento(modo)
+                  setMostrarDepartamento(true)
+                }}
+              />
+
+              {mostrarDepartamento && (
+                <DepartmentScreen
+                  modo={modoAtendimento}
+                  onStart={(
+                    departamentoIdSelecionado,
+                    terminalIdSelecionado,
+                    departamentoNomeSelecionado,
+                    terminalNomeSelecionado,
+                  ) => {
+                    setDepartamentoId(departamentoIdSelecionado)
+                    setTerminalId(terminalIdSelecionado)
+                    setDepartamentoNome(departamentoNomeSelecionado)
+                    setTerminalNome(terminalNomeSelecionado)
+                    setMostrarDepartamento(false)
+
+                    setStatusValidacao('waiting')
+
+                    const dadosVazios = {
+                      nome: '',
+                      telefone: '',
+                      email: '',
+                    }
+
+                    setDadosValidacao(dadosVazios)
+                    setDadosOriginais(dadosVazios)
+                    setCorrecoesValidacao({})
+
+                    if (modoAtendimento === 'funcionario') {
+                      setScreen('employee-validation')
+                    } else {
+                      setScreen('connection')
+                    }
+                  }}
+                  onBack={() => {
+                    setMostrarDepartamento(false)
+                  }}
+                />
+              )}
+            </>
           )}
         </>
       )}
@@ -592,6 +632,8 @@ export default function App() {
             onBack={() => {
               setDepartamentoId(null)
               setTerminalId(null)
+              setMostrarDepartamento(false)
+              setMostrarBoasVindas(true)
               setScreen('home')
             }}
           />
