@@ -22,10 +22,10 @@ func configurarRotas(
 	mux := http.NewServeMux()
 
 	// Limite separado para o fluxo tablet/computador.
-	// Com polling de 5s, o fluxo normal usa aproximadamente 48 req/min
-	// somando os dois dispositivos. O limite de 120/min mantém margem
-	// para oscilações e outras chamadas sem desativar a proteção.
-	atendimentoLimiter := middleware.NewRateLimiter(120, time.Minute)
+	// O limite é por IP; tablets e computadores do hospital podem compartilhar
+	// o mesmo IP público (NAT). O valor maior evita bloquear atendimentos
+	// simultâneos por causa do polling de presença e conferência.
+	atendimentoLimiter := middleware.NewRateLimiter(600, time.Minute)
 	atendimentoLimit := func(next http.Handler) http.Handler {
 		return atendimentoLimiter.Middleware(next)
 	}

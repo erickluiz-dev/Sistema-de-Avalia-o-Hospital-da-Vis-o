@@ -7,6 +7,7 @@ type SurveyScreenProps = {
   departamentoId: number
   terminalId: number
   clientId: string
+  telefone: string
   onBack: () => void
 }
 
@@ -14,6 +15,7 @@ export default function SurveyScreen({
   departamentoId,
   terminalId,
   clientId,
+  telefone,
   onBack,
 }: SurveyScreenProps) {
   const [selected, setSelected] = useState<RatingKey | null>(null)
@@ -43,6 +45,7 @@ export default function SurveyScreen({
           departamento_id: departamentoId,
           terminal_id: terminalId,
           comentario: comment.trim(),
+          telefone,
         }),
       })
 

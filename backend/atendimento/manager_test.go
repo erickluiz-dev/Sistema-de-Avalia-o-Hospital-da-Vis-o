@@ -2,6 +2,7 @@
 package atendimento
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -49,14 +50,10 @@ func TestManagerOnlyEmployeeCanAuthorizeWhenBothOnline(t *testing.T) {
 	if err := m.SubmitPatientData(1, 3, "pc", PatientData{Nome: "Paciente Teste"}); err != nil {
 		t.Fatalf("funcionário deveria enviar os dados: %v", err)
 	}
-	if err := m.Authorize(1, 3, "pc"); err == nil {
-		t.Fatal("não deveria liberar antes da conferência do paciente")
-	}
-	if err := m.SubmitReview(1, 3, "tablet", PatientData{Nome: "Paciente Corrigido"}); err != nil {
-		t.Fatalf("paciente deveria enviar a conferência: %v", err)
-	}
+	// A conferência é opcional no fluxo atual: se o funcionário já enviou
+	// os dados, ele pode liberar a avaliação sem aguardar correções.
 	if err := m.Authorize(1, 3, "pc"); err != nil {
-		t.Fatalf("funcionário deveria liberar após a conferência: %v", err)
+		t.Fatalf("funcionário deveria poder liberar sem conferência obrigatória: %v", err)
 	}
 	status, err := m.Status(1, 3, "tablet", RolePaciente)
 	if err != nil {
@@ -137,5 +134,36 @@ func TestCannotReadOrSubmitPatientDataFromWrongClientRole(t *testing.T) {
 	}
 	if _, err := m.Review(1, 2, "unknown", RolePaciente); err == nil {
 		t.Fatal("cliente desconhecido não deve ler dados")
+	}
+}
+
+func TestManagerAllowsOnlyOneActiveDevicePerRole(t *testing.T) {
+	m := NewManager()
+	now := time.Now()
+	m.now = func() time.Time { return now }
+
+	// Primeiro computador ocupa a vaga de funcionário.
+	if _, err := m.Heartbeat(7, 9, "pc-1", RoleFuncionario); err != nil {
+		t.Fatalf("primeiro computador deveria conectar: %v", err)
+	}
+	// O mesmo dispositivo pode renovar a própria presença.
+	if _, err := m.Heartbeat(7, 9, "pc-1", RoleFuncionario); err != nil {
+		t.Fatalf("heartbeat do mesmo computador deveria ser permitido: %v", err)
+	}
+	// Outro computador não pode ocupar a mesma vaga enquanto o primeiro está ativo.
+	if _, err := m.Heartbeat(7, 9, "pc-2", RoleFuncionario); !errors.Is(err, ErrRoleAlreadyConnected) {
+		t.Fatalf("segundo computador deveria ser recusado com ErrRoleAlreadyConnected; recebido: %v", err)
+	}
+	// A vaga do tablet é independente da vaga do computador.
+	if _, err := m.Heartbeat(7, 9, "tablet-1", RolePaciente); err != nil {
+		t.Fatalf("tablet deveria poder conectar na vaga de paciente: %v", err)
+	}
+	if _, err := m.Heartbeat(7, 9, "tablet-2", RolePaciente); !errors.Is(err, ErrRoleAlreadyConnected) {
+		t.Fatalf("segundo tablet deveria ser recusado; recebido: %v", err)
+	}
+	// Depois que a presença expira, outro dispositivo pode assumir a vaga.
+	now = now.Add(presenceTTL + time.Second)
+	if _, err := m.Heartbeat(7, 9, "pc-2", RoleFuncionario); err != nil {
+		t.Fatalf("novo computador deveria conectar após expiração: %v", err)
 	}
 }

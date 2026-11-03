@@ -41,6 +41,10 @@ func (h *AtendimentoHandler) Presence(w http.ResponseWriter, r *http.Request) {
 	}
 	status, err := h.Manager.Heartbeat(req.DepartmentID, req.TerminalID, req.ClientID, atendimento.Role(req.Role))
 	if err != nil {
+		if errors.Is(err, atendimento.ErrRoleAlreadyConnected) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"log"
 	"time"
 
@@ -81,6 +82,12 @@ func main() {
 
 	log.Println("Banco de dados conectado!")
 
+	// A chave deve ser Base64 e representar exatamente 32 bytes (AES-256).
+	phoneEncryptionKey, err := base64.StdEncoding.DecodeString(cfg.PhoneEncryptionKey)
+	if err != nil || len(phoneEncryptionKey) != 32 {
+		log.Fatal("PHONE_ENCRYPTION_KEY inválida: configure uma chave Base64 de exatamente 32 bytes")
+	}
+
 	// Serviços existentes.
 	emailService := services.NewEmailService(
 		cfg.SMTPHost,
@@ -114,7 +121,8 @@ func main() {
 	}
 
 	avaliacaoHandler := &handlers.AvaliacaoHandler{
-		DB: db,
+		DB:                 db,
+		PhoneEncryptionKey: phoneEncryptionKey,
 	}
 
 	terminalHandler := &handlers.TerminalHandler{

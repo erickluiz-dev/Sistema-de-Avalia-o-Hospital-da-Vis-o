@@ -11,6 +11,10 @@ import (
 
 const presenceTTL = 15 * time.Second
 
+// ErrRoleAlreadyConnected indica que já existe outro dispositivo ativo
+// ocupando a vaga do mesmo papel no departamento/terminal.
+var ErrRoleAlreadyConnected = errors.New("já existe outro dispositivo conectado para este perfil neste departamento e terminal")
+
 type Role string
 
 const (
@@ -94,14 +98,9 @@ func (m *Manager) Heartbeat(departmentID, terminalID int, clientID string, role 
 		m.sessions[key] = session
 	}
 
-	if existing, ok := session.Clients[clientID]; ok && existing.Role != role {
-		delete(session.Clients, clientID)
-		resetFlowLocked(session)
-	}
-	session.Clients[clientID] = Client{ID: clientID, Role: role, LastSeen: now}
-	session.UpdatedAt = now
+	// Remove presenças expiradas antes de validar a vaga. Um dispositivo
+	// que ainda está ativo mantém a vaga exclusiva do seu papel.
 	m.pruneLocked(now)
-
 	session = m.sessions[key]
 	if session == nil {
 		session = &Session{DepartmentID: departmentID, TerminalID: terminalID, Clients: make(map[string]Client), UpdatedAt: now}
@@ -110,7 +109,23 @@ func (m *Manager) Heartbeat(departmentID, terminalID int, clientID string, role 
 	if session.Clients == nil {
 		session.Clients = make(map[string]Client)
 	}
+
+	// O mesmo client_id pode renovar sua própria presença (heartbeat/reload
+	// na mesma sessão). Não pode trocar de papel nem criar uma segunda vaga.
+	if existing, ok := session.Clients[clientID]; ok {
+		if existing.Role != role {
+			return Status{}, errors.New("este dispositivo já está conectado com outro perfil")
+		}
+	} else {
+		for _, existing := range session.Clients {
+			if existing.Role == role && now.Sub(existing.LastSeen) <= presenceTTL {
+				return Status{}, ErrRoleAlreadyConnected
+			}
+		}
+	}
+
 	session.Clients[clientID] = Client{ID: clientID, Role: role, LastSeen: now}
+	session.UpdatedAt = now
 	return m.statusLocked(session, clientID, role, now), nil
 }
 

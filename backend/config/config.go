@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL    string
-	Port           string
-	AllowedOrigins string
-	CookieSecure   bool
+	DatabaseURL        string
+	PhoneEncryptionKey string
+	Port               string
+	AllowedOrigins     string
+	CookieSecure       bool
 
 	FrontendURL string
 
@@ -41,10 +42,11 @@ func Load() Config {
 	cookieSecure, _ := strconv.ParseBool(os.Getenv("COOKIE_SECURE"))
 
 	return Config{
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		Port:           port,
-		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
-		CookieSecure:   cookieSecure,
+		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		PhoneEncryptionKey: os.Getenv("PHONE_ENCRYPTION_KEY"),
+		Port:               port,
+		AllowedOrigins:     os.Getenv("ALLOWED_ORIGINS"),
+		CookieSecure:       cookieSecure,
 
 		FrontendURL: os.Getenv("FRONTEND_URL"),
 

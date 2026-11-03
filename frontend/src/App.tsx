@@ -287,7 +287,16 @@ export default function App() {
           authorized?: boolean
           data?: PatientData
         }
-        if (ativo && state.data_submitted && state.data) {
+        // Só abre a conferência enquanto o paciente ainda não a enviou.
+        // Após SubmitReview, data_submitted continua true no backend; sem esta
+        // condição o tablet reabria a tela de conferência indefinidamente.
+        if (
+          ativo &&
+          state.data_submitted &&
+          !state.review_submitted &&
+          !state.authorized &&
+          state.data
+        ) {
           setDadosValidacao(state.data)
           setDadosOriginais(state.data)
           setScreen('patient-review')
@@ -607,6 +616,7 @@ export default function App() {
           departamentoId={departamentoId}
           terminalId={terminalId}
           clientId={getClientId() ?? ''}
+          telefone={dadosValidacao.telefone}
           onBack={() => {
             const dadosVazios = {
               nome: '',

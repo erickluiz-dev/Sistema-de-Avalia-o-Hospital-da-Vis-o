@@ -10,13 +10,15 @@ import (
 	"time"
 
 	"backend/models"
+	"backend/services"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AvaliacaoHandler struct {
-	DB *pgxpool.Pool
+	DB                 *pgxpool.Pool
+	PhoneEncryptionKey []byte
 }
 
 func (h *AvaliacaoHandler) Criar(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +91,30 @@ func (h *AvaliacaoHandler) Criar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// O telefone é dado pessoal: normaliza e criptografa antes de persistir.
+	req.Telefone = strings.TrimSpace(req.Telefone)
+	telefoneDigitos := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, req.Telefone)
+	if telefoneDigitos != "" && (len(telefoneDigitos) < 10 || len(telefoneDigitos) > 11) {
+		http.Error(w, "Telefone inválido", http.StatusBadRequest)
+		return
+	}
+
+	var telefoneCriptografado []byte
+	if telefoneDigitos != "" {
+		var err error
+		telefoneCriptografado, err = services.EncryptPhone(telefoneDigitos, h.PhoneEncryptionKey)
+		if err != nil {
+			log.Println("Erro ao criptografar telefone da avaliação:", err)
+			http.Error(w, "Não foi possível proteger o telefone", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	// Descobre o funcionário responsável pelo terminal.
 	var funcionarioID int64
 
@@ -138,15 +164,17 @@ func (h *AvaliacaoHandler) Criar(w http.ResponseWriter, r *http.Request) {
 			departamento_id,
 			terminal_id,
 			funcionario_id,
-			comentario
+			comentario,
+			telefone_encrypted
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		`,
 		req.Avaliacao,
 		req.DepartamentoID,
 		req.TerminalID,
 		funcionarioID,
 		req.Comentario,
+		telefoneCriptografado,
 	)
 
 	if err != nil {
