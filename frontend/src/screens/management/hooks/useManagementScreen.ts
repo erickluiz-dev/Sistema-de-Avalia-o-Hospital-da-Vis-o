@@ -38,6 +38,7 @@ export function useManagementScreen() {
 
     carregarDados,
     aplicarTerminal,
+    excluirRegistro,
     getTerminaisDoDepartamento,
   } = useManagementData()
 
@@ -112,6 +113,7 @@ export function useManagementScreen() {
     onNovoTerminal: abrirModal,
     onNovoDepartamento: abrirModal,
     onNovoUsuario: abrirModal,
+    onExcluir: excluirRegistro,
   }
 
   /*

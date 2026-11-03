@@ -41,6 +41,7 @@ type ManagementContentProps = {
   onNovoTerminal: () => void
   onNovoDepartamento: () => void
   onNovoUsuario: () => void
+  onExcluir: (tipo: 'funcionarios' | 'terminais' | 'departamentos' | 'usuarios', id: number, nome: string) => void
 }
 
 export default function ManagementContent({
@@ -60,6 +61,7 @@ export default function ManagementContent({
   onNovoTerminal,
   onNovoDepartamento,
   onNovoUsuario,
+  onExcluir,
 }: ManagementContentProps) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -77,6 +79,7 @@ export default function ManagementContent({
           aplicarTerminal={aplicarTerminal}
           getTerminaisDoDepartamento={getTerminaisDoDepartamento}
           onNovoFuncionario={onNovoFuncionario}
+          onExcluir={(id, nome) => onExcluir('funcionarios', id, nome)}
         />
       )}
 
@@ -84,6 +87,7 @@ export default function ManagementContent({
         <TerminaisTab
           terminais={terminais}
           onNovoTerminal={onNovoTerminal}
+          onExcluir={(id, nome) => onExcluir('terminais', id, nome)}
         />
       )}
 
@@ -91,6 +95,7 @@ export default function ManagementContent({
         <DepartamentosTab
           departamentos={departamentos}
           onNovoDepartamento={onNovoDepartamento}
+          onExcluir={(id, nome) => onExcluir('departamentos', id, nome)}
         />
       )}
 
@@ -98,6 +103,7 @@ export default function ManagementContent({
         <UsuariosTab
           usuarios={usuarios}
           onNovoUsuario={onNovoUsuario}
+          onExcluir={(id, nome) => onExcluir('usuarios', id, nome)}
         />
       )}
 

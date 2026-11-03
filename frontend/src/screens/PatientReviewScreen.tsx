@@ -176,7 +176,7 @@ export default function PatientReviewScreen({
           </div>
 
           {erro && (
-            <p role="alert" className="mt-4 text-sm text-red-600">
+            <p role="alert" className="mt-4 text-sm text-[#b20000a4]">
               {erro}
             </p>
           )}

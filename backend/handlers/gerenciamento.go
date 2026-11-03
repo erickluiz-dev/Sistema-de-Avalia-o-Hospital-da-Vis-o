@@ -33,6 +33,7 @@ func (h *GerenciamentoHandler) ListarUsuarios(
 		`
 		SELECT id, nome, login, administrador 
 		FROM usuarios
+		WHERE ativo = TRUE
 		ORDER BY nome
 		`,
 	)
@@ -471,6 +472,7 @@ func (h *GerenciamentoHandler) ListarFuncionarios(
 			ON t.id = f.terminal_id
 		LEFT JOIN departamentos d
 			ON d.id = t.departamento_id
+		WHERE f.ativo = TRUE
 		ORDER BY f.nome
 		`,
 	)
@@ -658,6 +660,7 @@ func (h *GerenciamentoHandler) ListarDepartamentos(
 			id,
 			nome
 		FROM departamentos
+		WHERE ativo = TRUE
 		ORDER BY nome
 		`,
 	)
@@ -1494,6 +1497,8 @@ func (h *GerenciamentoHandler) FuncionarioPorID(
 	switch r.Method {
 	case http.MethodPut:
 		h.AtualizarFuncionario(w, r)
+	case http.MethodDelete:
+		h.DesativarFuncionario(w, r)
 
 	default:
 		http.Error(
@@ -1597,6 +1602,7 @@ func (h *GerenciamentoHandler) DesativarTerminal(
 		return
 	}
 
+	h.registrarAuditoria(r, "DESATIVAR_TERMINAL", "terminal", id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1629,37 +1635,43 @@ func (h *GerenciamentoHandler) DesativarDepartamento(
 		return
 	}
 
-	result, err := h.DB.Exec(
+	tx, err := h.DB.Begin(r.Context())
+	if err != nil {
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	result, err := tx.Exec(
 		r.Context(),
-		`
-		UPDATE departamentos
-		SET ativo = FALSE
-		WHERE id = $1
-		  AND ativo = TRUE
-		`,
+		`UPDATE departamentos SET ativo = FALSE WHERE id = $1 AND ativo = TRUE`,
 		id,
 	)
-
 	if err != nil {
 		log.Println("Erro ao desativar departamento:", err)
-
-		http.Error(
-			w,
-			"Não foi possível desativar o departamento",
-			http.StatusInternalServerError,
-		)
+		http.Error(w, "Não foi possível desativar o departamento", http.StatusInternalServerError)
 		return
 	}
-
 	if result.RowsAffected() == 0 {
-		http.Error(
-			w,
-			"Departamento não encontrado ou já desativado",
-			http.StatusNotFound,
-		)
+		http.Error(w, "Departamento não encontrado ou já desativado", http.StatusNotFound)
 		return
 	}
 
+	// Terminais do departamento também deixam de estar disponíveis para novos atendimentos.
+	if _, err := tx.Exec(r.Context(),
+		`UPDATE terminais SET ativo = FALSE WHERE departamento_id = $1 AND ativo = TRUE`, id,
+	); err != nil {
+		log.Println("Erro ao desativar terminais do departamento:", err)
+		http.Error(w, "Não foi possível desativar os terminais do departamento", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		log.Println("Erro ao confirmar desativação do departamento:", err)
+		http.Error(w, "Não foi possível desativar o departamento", http.StatusInternalServerError)
+		return
+	}
+
+	h.registrarAuditoria(r, "DESATIVAR_DEPARTAMENTO", "departamento", id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1729,5 +1741,79 @@ func (h *GerenciamentoHandler) DesativarFuncionario(
 		id,
 	)
 
+	h.registrarAuditoria(r, "DESATIVAR_FUNCIONARIO", "funcionario", id)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *GerenciamentoHandler) DesativarUsuario(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+	id, err := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/admin/usuarios/"), 10, 64)
+	if err != nil || id <= 0 {
+		http.Error(w, "ID do usuário inválido", http.StatusBadRequest)
+		return
+	}
+	usuarioAtual, ok := middleware.UsuarioDoContexto(r)
+	if !ok {
+		http.Error(w, "Não autenticado", http.StatusUnauthorized)
+		return
+	}
+	if usuarioAtual.ID == id {
+		http.Error(w, "Não é permitido desativar o próprio usuário conectado", http.StatusConflict)
+		return
+	}
+
+	tx, err := h.DB.Begin(r.Context())
+	if err != nil {
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var administrador, ativo bool
+	err = tx.QueryRow(r.Context(),
+		`SELECT administrador, ativo FROM usuarios WHERE id = $1 FOR UPDATE`, id,
+	).Scan(&administrador, &ativo)
+	if err != nil {
+		http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+		return
+	}
+	if !ativo {
+		http.Error(w, "Usuário já está desativado", http.StatusNotFound)
+		return
+	}
+	if administrador {
+		var adminsAtivos int
+		if err := tx.QueryRow(r.Context(),
+			`SELECT COUNT(*) FROM usuarios WHERE administrador = TRUE AND ativo = TRUE`,
+		).Scan(&adminsAtivos); err != nil {
+			http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+			return
+		}
+		if adminsAtivos <= 1 {
+			http.Error(w, "Não é possível desativar o último administrador ativo", http.StatusConflict)
+			return
+		}
+	}
+	if _, err := tx.Exec(r.Context(),
+		`UPDATE usuarios SET ativo = FALSE WHERE id = $1 AND ativo = TRUE`, id,
+	); err != nil {
+		log.Println("Erro ao desativar usuário:", err)
+		http.Error(w, "Não foi possível desativar o usuário", http.StatusInternalServerError)
+		return
+	}
+	if _, err := tx.Exec(r.Context(), `DELETE FROM sessoes WHERE usuario_id = $1`, id); err != nil {
+		log.Println("Erro ao invalidar sessões do usuário:", err)
+		http.Error(w, "Não foi possível invalidar as sessões do usuário", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		log.Println("Erro ao confirmar desativação do usuário:", err)
+		http.Error(w, "Não foi possível desativar o usuário", http.StatusInternalServerError)
+		return
+	}
+	h.registrarAuditoria(r, "DESATIVAR_USUARIO", "usuario", id)
 	w.WriteHeader(http.StatusNoContent)
 }

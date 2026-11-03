@@ -110,6 +110,32 @@ export function useManagementData() {
     carregarDados()
   }, [carregarDados])
 
+
+  const excluirRegistro = async (
+    tipo: 'funcionarios' | 'terminais' | 'departamentos' | 'usuarios',
+    id: number,
+    nome: string,
+  ) => {
+    const confirmado = window.confirm(
+      `Deseja realmente desativar "${nome}"? O registro será ocultado, mas seu histórico será preservado.`,
+    )
+    if (!confirmado) return
+
+    try {
+      const response = await apiFetch(`/admin/${tipo}/${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const mensagem = (await response.text()).trim()
+        window.alert(mensagem || 'Não foi possível desativar o registro.')
+        return
+      }
+      await carregarDados()
+      window.alert('Registro desativado com sucesso.')
+    } catch (error) {
+      console.error('Erro ao desativar registro:', error)
+      window.alert('Não foi possível concluir a desativação. Verifique a conexão.')
+    }
+  }
+
   const getTerminaisDoDepartamento = (
     departamentoId: number | '',
   ): Terminal[] => {
@@ -202,6 +228,7 @@ export function useManagementData() {
 
     carregarDados,
     aplicarTerminal,
+    excluirRegistro,
     getTerminaisDoDepartamento,
   }
 }

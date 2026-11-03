@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 type Terminal = {
   id: number
   terminal: string
@@ -7,11 +8,13 @@ type Terminal = {
 type TerminaisTabProps = {
   terminais: Terminal[]
   onNovoTerminal: () => void
+  onExcluir: (id: number, nome: string) => void
 }
 
 export default function TerminaisTab({
   terminais,
   onNovoTerminal,
+  onExcluir,
 }: TerminaisTabProps) {
   return (
     <div>
@@ -51,6 +54,7 @@ export default function TerminaisTab({
               <th className="px-4 py-3 text-left">
                 Departamento
               </th>
+              <th className="px-4 py-3 text-center"></th>
             </tr>
           </thead>
 
@@ -66,6 +70,13 @@ export default function TerminaisTab({
 
                 <td className="px-4 py-4 text-gray-600">
                   {terminal.departamento}
+                </td>
+                <td className="px-4 py-4 text-center">
+                  <button type="button" onClick={() => onExcluir(terminal.id, terminal.terminal)}
+                    title="Desativar terminal" aria-label={`Desativar terminal ${terminal.terminal}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#b20000a4] transition-colors hover:bg-red-50">
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}

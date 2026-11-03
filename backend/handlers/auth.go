@@ -71,6 +71,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SELECT id, nome, login, senha_hash, administrador
 		FROM usuarios
 		WHERE login = $1
+		  AND ativo = TRUE
 		`,
 		req.Login,
 	).Scan(
@@ -198,6 +199,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			ON s.usuario_id = u.id
 		WHERE s.id = $1
 		AND s.expira_em > NOW()
+		AND u.ativo = TRUE
 		`,
 		sessionHash,
 	).Scan(

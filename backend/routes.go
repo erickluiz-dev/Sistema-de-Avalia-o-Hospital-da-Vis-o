@@ -131,7 +131,16 @@ func configurarRotas(
 	mux.Handle("/avaliacoes/estatisticas", admin(avaliacaoHandler.Estatisticas))
 
 	mux.Handle("/admin/usuarios", admin(gerenciamentoHandler.Usuarios))
-	mux.Handle("/admin/usuarios/", admin(gerenciamentoHandler.AtualizarUsuario))
+	mux.Handle("/admin/usuarios/", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			gerenciamentoHandler.AtualizarUsuario(w, r)
+		case http.MethodDelete:
+			gerenciamentoHandler.DesativarUsuario(w, r)
+		default:
+			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		}
+	})))
 
 	mux.Handle("/admin/funcionarios", admin(gerenciamentoHandler.Funcionarios))
 	mux.Handle("/admin/funcionarios/{id}/terminal", admin(gerenciamentoHandler.VincularTerminal))

@@ -1,13 +1,16 @@
+import { Trash2 } from 'lucide-react'
 import type { Usuario } from '../../../types'
 
 type UsuariosTabProps = {
   usuarios: Usuario[]
   onNovoUsuario: () => void
+  onExcluir: (id: number, nome: string) => void
 }
 
 export default function UsuariosTab({
   usuarios,
   onNovoUsuario,
+  onExcluir,
 }: UsuariosTabProps) {
   return (
     <div>
@@ -48,6 +51,7 @@ export default function UsuariosTab({
               <th className="px-4 py-3 text-center">
                 ADMINISTRADOR
               </th>
+              <th className="px-4 py-3 text-center"></th>
             </tr>
           </thead>
 
@@ -75,6 +79,13 @@ export default function UsuariosTab({
                       Não
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-4 text-center">
+                  <button type="button" onClick={() => onExcluir(usuarioItem.id, usuarioItem.nome)}
+                    title="Desativar usuário" aria-label={`Desativar usuário ${usuarioItem.nome}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#b20000a4] transition-colors hover:bg-red-50">
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}

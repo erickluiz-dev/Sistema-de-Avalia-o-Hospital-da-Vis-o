@@ -34,9 +34,11 @@ func (h *TerminalHandler) Listar(
 			id,
 			terminal,
 			departamento_id
-		FROM terminais
-		WHERE ativo = TRUE
-		ORDER BY id
+		FROM terminais t
+		INNER JOIN departamentos d ON d.id = t.departamento_id
+		WHERE t.ativo = TRUE
+		  AND d.ativo = TRUE
+		ORDER BY t.id
 		`,
 	)
 

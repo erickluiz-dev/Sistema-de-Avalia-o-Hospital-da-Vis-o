@@ -1,0 +1,16 @@
+BEGIN;
+
+-- Flags de exclusão lógica para as quatro áreas do Gerenciamento.
+ALTER TABLE funcionarios
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE terminais
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE departamentos
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE usuarios
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMIT;

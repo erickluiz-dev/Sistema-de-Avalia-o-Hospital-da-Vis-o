@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 
 type Funcionario = {
@@ -46,6 +47,7 @@ type FuncionariosTabProps = {
   ) => Terminal[]
 
   onNovoFuncionario: () => void
+  onExcluir: (id: number, nome: string) => void
 }
 
 export default function FuncionariosTab({
@@ -60,6 +62,7 @@ export default function FuncionariosTab({
   aplicarTerminal,
   getTerminaisDoDepartamento,
   onNovoFuncionario,
+  onExcluir,
 }: FuncionariosTabProps) {
   return (
     <div>
@@ -102,12 +105,10 @@ export default function FuncionariosTab({
               </th>
 
               <th className="px-4 py-3 text-left">
-                Status
+                
               </th>
 
-              <th className="px-4 py-3 text-left">
-                Ação
-              </th>
+              <th className="px-4 py-3 text-left"></th>
             </tr>
           </thead>
 
@@ -222,17 +223,7 @@ export default function FuncionariosTab({
                   </td>
 
                   <td className="px-4 py-4">
-                    <span
-                      className={
-                        funcionario.ativo
-                          ? 'text-green-600'
-                          : 'text-red-500'
-                      }
-                    >
-                      {funcionario.ativo
-                        ? 'Ativo'
-                        : 'Inativo'}
-                    </span>
+                    
                   </td>
 
                   <td className="px-4 py-4">
@@ -249,12 +240,22 @@ export default function FuncionariosTab({
                         ] === ''
                       }
                       className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
+                      style={{ background: '#00acb2a4'}}
                     >
                       {aplicandoFuncionario ===
                       funcionario.id
                         ? 'Aplicando...'
                         : 'Aplicar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onExcluir(funcionario.id, funcionario.nome)}
+                      disabled={!funcionario.ativo}
+                      title="Desativar funcionário"
+                      aria-label={`Desativar funcionário ${funcionario.nome}`}
+                      className="ml-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#b20000a4] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Trash2 size={18} />
                     </button>
                   </td>
                 </tr>

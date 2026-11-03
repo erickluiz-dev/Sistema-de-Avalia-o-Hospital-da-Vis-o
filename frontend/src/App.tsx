@@ -570,7 +570,49 @@ export default function App() {
               }
               setStatusValidacao('survey')
             }}
-            onBack={() => setScreen('connection')}
+            onBack={async () => {
+            const clientId = getClientId()
+
+            // Encerra a conexão do funcionário no departamento/terminal atual.
+            if (clientId && departamentoId !== null && terminalId !== null) {
+              try {
+                await apiFetch('/atendimento/sair', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    department_id: departamentoId,
+                    terminal_id: terminalId,
+                    client_id: clientId,
+                    role: 'funcionario',
+                  }),
+                })
+              } catch (error) {
+                console.error('Erro ao encerrar conexão do funcionário:', error)
+              }
+            }
+
+            // Limpa os dados temporários do atendimento.
+            const dadosVazios = {
+              nome: '',
+              telefone: '',
+              email: '',
+            }
+
+            setDadosValidacao(dadosVazios)
+            setDadosOriginais(dadosVazios)
+            setCorrecoesValidacao({})
+            setStatusValidacao('waiting')
+            cicloAtendimentoRef.current = null
+
+            // Limpa a seleção do departamento e terminal.
+            setDepartamentoId(null)
+            setTerminalId(null)
+            setDepartamentoNome('')
+            setTerminalNome('')
+            setMostrarDepartamento(false)
+
+            // Retorna ao menu principal.
+            setScreen('home')
+          }}
           />
         )}
 
