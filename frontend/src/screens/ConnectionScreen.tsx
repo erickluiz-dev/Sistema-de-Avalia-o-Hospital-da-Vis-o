@@ -2,6 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../services/api'
 import type { ModoAtendimento } from '../types'
 
+async function obterMensagemErro(response: Response, fallback: string): Promise<string> {
+  const texto = (await response.text()).trim()
+  if (!texto) return `${fallback} (HTTP ${response.status})`
+
+  try {
+    const dados = JSON.parse(texto) as { message?: string; error?: string }
+    return dados.message || dados.error || texto
+  } catch {
+    return texto
+  }
+}
+
 type ConnectionStatus = {
   connected: boolean
   counterpart_online: boolean
@@ -98,7 +110,9 @@ export default function ConnectionScreen({
         })
 
         if (!response.ok) {
-          throw new Error(`Não foi possível registrar presença (${response.status}).`)
+          throw new Error(
+            await obterMensagemErro(response, 'Não foi possível registrar a presença'),
+          )
         }
 
         const data = (await response.json()) as ConnectionStatus
@@ -172,42 +186,42 @@ export default function ConnectionScreen({
 
 
   return (
-    <div className="min-h-screen flex  justify-center p-5">
-      <main >
+    <div className="flex min-h-[100dvh] w-full items-start justify-center px-4 py-8 sm:items-center sm:px-6 sm:py-10">
+      <main className="w-full max-w-3xl">
 
-         <div className="flex justify-center items-center w-full mb-15 mt-12">
+         <div className="mb-8 mt-2 flex w-full items-center justify-center sm:mb-12 sm:mt-4">
             <img
             src="/logo.png"
             alt="Hospital da Visão"
             width="270"
             height="110"
-            style={{
-                objectFit: 'contain',
-                objectPosition: 'left center',
-            }}
+            className="h-auto w-44 object-contain sm:w-56 md:w-[270px]"
+            style={{ objectPosition: 'center' }}
         /></div>
 
-        <div className="w-full max-w-2xl text-center">
-            
-            <h1 className="mt-3 text-4xl lg:text-6xl font-bold text-[#50626E] tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="mx-auto w-full max-w-2xl text-center">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#50626E] sm:text-4xl lg:text-6xl" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Seja bem-vindo!
             </h1>
-            <p className="mt-12 mx-auto max-w-lg text-lg lg:text-xl leading-relaxed text-gray-500">
+            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-gray-500 sm:mt-10 sm:text-lg lg:text-xl">
               Que bom ter você aqui. Fique à vontade, seu atendimento começará em breve.
             </p>
 
-            <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#00B5CC]/30 bg-[#E0F2FE] px-5 py-3 text-sm font-medium text-[#00B5CC]">
-              <img 
-                src="/icon.ico" 
-                alt="Ícone" 
-                style={{ 
-                  width: '8%',  
-                  height: '8%', 
-                  objectFit: 'contain' 
-                }} 
+            <div className="mx-auto mt-8 inline-flex max-w-full items-center justify-center gap-3 rounded-full border border-[#00B5CC]/30 bg-[#E0F2FE] px-4 py-3 text-sm font-medium text-[#00B5CC] sm:mt-10 sm:px-5">
+              <img
+                src="/icon.ico"
+                alt=""
+                aria-hidden="true"
+                className="h-5 w-5 shrink-0 object-contain"
               />
-              Fale com um de nossos atendentes 
+              <span>Fale com um de nossos atendentes</span>
             </div>
+
+            {erro && (
+              <p role="alert" className="mx-auto mt-6 max-w-lg rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {erro}
+              </p>
+            )}
           </div>
 
       </main>

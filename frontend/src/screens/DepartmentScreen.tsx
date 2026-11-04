@@ -14,6 +14,18 @@ import type {
   Terminal,
 } from '../types'
 
+async function obterMensagemErro(response: Response, fallback: string): Promise<string> {
+  const texto = (await response.text()).trim()
+  if (!texto) return `${fallback} (HTTP ${response.status})`
+
+  try {
+    const dados = JSON.parse(texto) as { message?: string; error?: string }
+    return dados.message || dados.error || texto
+  } catch {
+    return texto
+  }
+}
+
 type ConnectionStatus = {
   connected: boolean
   counterpart_online: boolean
@@ -65,6 +77,10 @@ function DepartmentScreen({
   const [loadingDepartamentos, setLoadingDepartamentos] = useState(true)
   const [loadingTerminais, setLoadingTerminais] = useState(true)
   const [loadingFuncionarios, setLoadingFuncionarios] = useState(false)
+  const [erroDepartamentos, setErroDepartamentos] = useState('')
+  const [erroTerminais, setErroTerminais] = useState('')
+  const [erroFuncionario, setErroFuncionario] = useState('')
+  const [tentativaListas, setTentativaListas] = useState(0)
 
   const [possuiFuncionario, setPossuiFuncionario] = useState(false)
 
@@ -93,20 +109,23 @@ function DepartmentScreen({
     async function carregarDepartamentos() {
       try {
         setLoadingDepartamentos(true)
+        setErroDepartamentos('')
 
         const response = await apiFetch('/departamentos')
-
         if (!response.ok) {
-          throw new Error('Erro ao buscar departamentos.')
+          throw new Error(await obterMensagemErro(response, 'Erro ao buscar departamentos'))
         }
 
         const data: Departamento[] = await response.json()
-
-        if (ativo) {
-          setDepartamentos(data)
+        if (!Array.isArray(data)) {
+          throw new Error('O servidor retornou uma lista de departamentos inválida.')
         }
+
+        if (ativo) setDepartamentos(data)
       } catch (error) {
         if (ativo) {
+          const mensagem = error instanceof Error ? error.message : 'Falha ao carregar departamentos.'
+          setErroDepartamentos(mensagem)
           console.error('Erro ao carregar departamentos:', error)
         }
       } finally {
@@ -121,7 +140,7 @@ function DepartmentScreen({
     return () => {
       ativo = false
     }
-  }, [])
+  }, [tentativaListas])
 
   // Carrega os terminais disponíveis.
   useEffect(() => {
@@ -130,20 +149,23 @@ function DepartmentScreen({
     async function carregarTerminais() {
       try {
         setLoadingTerminais(true)
+        setErroTerminais('')
 
         const response = await apiFetch('/terminais')
-
         if (!response.ok) {
-          throw new Error('Erro ao buscar terminais.')
+          throw new Error(await obterMensagemErro(response, 'Erro ao buscar terminais'))
         }
 
         const data: Terminal[] = await response.json()
-
-        if (ativo) {
-          setTerminais(data)
+        if (!Array.isArray(data)) {
+          throw new Error('O servidor retornou uma lista de terminais inválida.')
         }
+
+        if (ativo) setTerminais(data)
       } catch (error) {
         if (ativo) {
+          const mensagem = error instanceof Error ? error.message : 'Falha ao carregar terminais.'
+          setErroTerminais(mensagem)
           console.error('Erro ao carregar terminais:', error)
         }
       } finally {
@@ -158,13 +180,14 @@ function DepartmentScreen({
     return () => {
       ativo = false
     }
-  }, [])
+  }, [tentativaListas])
 
   // Verifica se há funcionário ativo para a seleção atual.
   useEffect(() => {
     let ativo = true
 
     setPossuiFuncionario(false)
+    setErroFuncionario('')
 
     if (!selecaoCompleta) {
       setLoadingFuncionarios(false)
@@ -185,16 +208,19 @@ function DepartmentScreen({
         )
 
         if (!response.ok) {
-          throw new Error('Erro ao verificar funcionário.')
+          throw new Error(await obterMensagemErro(response, 'Erro ao verificar funcionário'))
         }
 
         const data: { disponivel: boolean } = await response.json()
-
-        if (ativo) {
-          setPossuiFuncionario(data.disponivel)
+        if (typeof data.disponivel !== 'boolean') {
+          throw new Error('Resposta inválida ao verificar a disponibilidade do funcionário.')
         }
+
+        if (ativo) setPossuiFuncionario(data.disponivel)
       } catch (error) {
         if (ativo) {
+          const mensagem = error instanceof Error ? error.message : 'Falha ao verificar funcionário.'
+          setErroFuncionario(mensagem)
           console.error('Erro ao verificar funcionário:', error)
           setPossuiFuncionario(false)
         }
@@ -242,16 +268,9 @@ function DepartmentScreen({
         })
 
         if (!response.ok) {
-          let mensagem = 'Não foi possível registrar a presença do dispositivo.'
-
-          try {
-            const data = await response.json() as { error?: string; message?: string }
-            mensagem = data.message || data.error || mensagem
-          } catch {
-            // Mantém a mensagem padrão se a resposta não for JSON.
-          }
-
-          throw new Error(mensagem)
+          throw new Error(
+            await obterMensagemErro(response, 'Não foi possível registrar a presença do dispositivo'),
+          )
         }
 
         const data = await response.json() as ConnectionStatus
@@ -305,6 +324,7 @@ function DepartmentScreen({
     setDepartamentoSelecionado(valor)
     setTerminalSelecionado('')
     setPossuiFuncionario(false)
+    setErroFuncionario('')
     setStatus(null)
     setErro('')
   }
@@ -312,6 +332,7 @@ function DepartmentScreen({
   const handleTerminalChange = (valor: string) => {
     setTerminalSelecionado(valor)
     setPossuiFuncionario(false)
+    setErroFuncionario('')
     setStatus(null)
     setErro('')
   }
@@ -328,6 +349,7 @@ function DepartmentScreen({
   const podeConectar =
     selecaoCompleta &&
     possuiFuncionario &&
+    !erroFuncionario &&
     !carregando &&
     !loadingFuncionarios &&
     !verificandoConexao &&
@@ -358,9 +380,9 @@ function DepartmentScreen({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 backdrop-blur-[2px] p-3 sm:p-6">
       <div
-        className="w-full max-w-md rounded-3xl bg-white p-8"
+        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 sm:p-8"
         style={{
           boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
         }}
@@ -389,7 +411,7 @@ function DepartmentScreen({
             handleDepartamentoChange(event.target.value)
           }
           disabled={loadingDepartamentos}
-          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 focus:border-[#00B5CC] focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+          className="min-h-12 w-full rounded-xl border border-gray-200 px-4 py-3 text-base text-gray-800 focus:border-[#00B5CC] focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
         >
           <option value="">
             {loadingDepartamentos
@@ -424,7 +446,7 @@ function DepartmentScreen({
             !departamentoSelecionado ||
             loadingTerminais
           }
-          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 focus:border-[#00B5CC] focus:outline-none focus:ring-2 focus:ring-[#00B5CC] disabled:bg-gray-50 disabled:text-gray-400"
+          className="min-h-12 w-full rounded-xl border border-gray-200 px-4 py-3 text-base text-gray-800 focus:border-[#00B5CC] focus:outline-none focus:ring-2 focus:ring-[#00B5CC] disabled:bg-gray-50 disabled:text-gray-400"
         >
           <option value="">
             {!departamentoSelecionado
@@ -445,6 +467,21 @@ function DepartmentScreen({
             </option>
           ))}
         </select>
+
+        {(erroDepartamentos || erroTerminais) && (
+          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p className="font-semibold">Não foi possível carregar as opções.</p>
+            {erroDepartamentos && <p className="mt-1">Departamentos: {erroDepartamentos}</p>}
+            {erroTerminais && <p className="mt-1">Terminais: {erroTerminais}</p>}
+            <button
+              type="button"
+              onClick={() => setTentativaListas((valor) => valor + 1)}
+              className="mt-3 min-h-10 rounded-lg bg-red-100 px-4 py-2 font-semibold text-red-800"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
         {/* Único painel de status, acima do botão de conexão. */}
         
@@ -516,7 +553,14 @@ function DepartmentScreen({
           Conectar dispositivo
         </button>
 
+        {selecaoCompleta && erroFuncionario && (
+          <p role="alert" className="mt-3 text-center text-sm text-red-600">
+            Não foi possível verificar a disponibilidade: {erroFuncionario}
+          </p>
+        )}
+
         {selecaoCompleta &&
+          !erroFuncionario &&
           !loadingFuncionarios &&
           !possuiFuncionario && (
             <p className="mt-3 text-center text-xs text-gray-500">

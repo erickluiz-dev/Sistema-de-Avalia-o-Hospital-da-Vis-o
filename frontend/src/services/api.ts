@@ -61,6 +61,8 @@ export async function apiFetch(
     headers.set('Content-Type', 'application/json')
   }
 
+  // O backend aplica CSRF também às rotas /atendimento/*; a exceção dessas
+  // rotas no servidor é somente do rate limiter geral. Não remover o token.
   const usaCSRF =
     ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
     !ROTAS_PUBLICAS_SEM_CSRF.has(normalizedEndpoint)
