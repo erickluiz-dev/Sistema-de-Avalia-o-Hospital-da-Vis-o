@@ -380,9 +380,17 @@ function DepartmentScreen({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 backdrop-blur-[2px] p-3 sm:p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 px-3 py-3 backdrop-blur-[2px] sm:items-center sm:px-6 sm:py-6"
+      style={{
+        paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+      }}
+    >
       <div
-        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 sm:p-8"
+        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-x-hidden overflow-y-auto rounded-2xl bg-white p-4 sm:rounded-3xl sm:p-8"
         style={{
           boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
         }}
@@ -393,7 +401,7 @@ function DepartmentScreen({
             : 'Tablet do Paciente'}
         </h1>
 
-        <p className="mt-2 mb-8 text-center text-sm text-gray-500">
+        <p className="mx-auto mt-2 mb-6 max-w-sm text-center text-sm leading-relaxed text-gray-500 sm:mb-8">
           Selecione o mesmo departamento e terminal que serão usados no outro dispositivo.
         </p>
 
@@ -431,7 +439,7 @@ function DepartmentScreen({
 
         <label
           htmlFor="terminal"
-          className="mt-8 mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600"
+          className="mt-5 mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600 sm:mt-8"
         >
           Terminal
         </label>
@@ -544,7 +552,7 @@ function DepartmentScreen({
           type="button"
           disabled={!podeConectar}
           onClick={handleStart}
-          className="mt-4 w-full rounded-xl py-3.5 font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 min-h-12 w-full rounded-xl px-4 py-3.5 font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
           style={{
             background: 'linear-gradient(135deg,#04c7e0,#0697aa)',
             boxShadow: '0 2px 8px #00b4cc59',

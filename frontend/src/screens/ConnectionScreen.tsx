@@ -186,8 +186,16 @@ export default function ConnectionScreen({
 
 
   return (
-    <div className="flex min-h-[100dvh] w-full items-start justify-center px-4 py-8 sm:items-center sm:px-6 sm:py-10">
-      <main className="w-full max-w-3xl">
+    <div
+      className="flex min-h-[100dvh] w-full items-start justify-center overflow-x-hidden px-4 py-6 sm:items-center sm:px-6 sm:py-10"
+      style={{
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+      }}
+    >
+      <main className="w-full min-w-0 max-w-3xl">
 
          <div className="mb-8 mt-2 flex w-full items-center justify-center sm:mb-12 sm:mt-4">
             <img
@@ -200,10 +208,10 @@ export default function ConnectionScreen({
         /></div>
 
         <div className="mx-auto w-full max-w-2xl text-center">
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#50626E] sm:text-4xl lg:text-6xl" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <h1 className="mt-3 break-words text-2xl font-bold tracking-tight text-[#50626E] sm:text-4xl lg:text-6xl" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Seja bem-vindo!
             </h1>
-            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-gray-500 sm:mt-10 sm:text-lg lg:text-xl">
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-gray-500 sm:mt-10 sm:text-lg lg:text-xl">
               Que bom ter você aqui. Fique à vontade, seu atendimento começará em breve.
             </p>
 
