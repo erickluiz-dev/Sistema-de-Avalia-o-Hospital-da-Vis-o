@@ -76,9 +76,9 @@ export default function CadastroModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 backdrop-blur-[2px] p-3 sm:p-6">
       <div
-        className="w-full max-w-md bg-white rounded-3xl p-6"
+        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto bg-white rounded-3xl p-4 sm:p-6"
         style={{
           boxShadow:
             '0 20px 60px rgba(0,0,0,0.18)',

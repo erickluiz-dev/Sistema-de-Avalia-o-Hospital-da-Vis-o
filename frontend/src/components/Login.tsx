@@ -82,10 +82,10 @@ function LoginScreen({ onLogin, onForgotPassword, }: LoginScreenProps) {
       <LoginPresentation />
 
       {/* Right login card */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-6 min-h-screen lg:min-h-0">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 p-3 sm:p-6 min-h-[100dvh] lg:min-h-0">
         <div className="w-full max-w-md ">
           <div
-            className="bg-white rounded-3xl min-h-[460px] p-8 sm:p-10"
+            className="bg-white rounded-3xl min-h-0 p-6 sm:min-h-[460px] sm:p-10"
             style={{
               boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
             }}

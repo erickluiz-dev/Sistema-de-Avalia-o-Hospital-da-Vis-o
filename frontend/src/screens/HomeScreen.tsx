@@ -96,7 +96,7 @@ export default function HomeScreen({
         usuario={usuario}
       />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8 w-full">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 gap-6 sm:gap-8 w-full">
         <div className="text-center">
           <h1
             className="text-3xl font-bold text-gray-900"
@@ -114,7 +114,7 @@ export default function HomeScreen({
           {cards.map((card) => (
             <div
               key={card.title}
-              className="w-full sm:w-[360px] bg-white rounded-3xl p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
+              className="w-full sm:w-[360px] bg-white rounded-3xl p-6 sm:p-8 flex flex-col gap-5 cursor-pointer group transition-all duration-200"
               style={{
                 boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
                 border: '1px solid #f3f4f6',

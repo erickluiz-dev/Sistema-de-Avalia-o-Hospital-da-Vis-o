@@ -186,7 +186,7 @@ export default function SurveyScreen({
       style={{ background: '#f8fafc' }}
     >
       <div
-        className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between"
+        className="bg-white border-b border-gray-100 px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3"
         style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}
       >
         <img
@@ -194,6 +194,7 @@ export default function SurveyScreen({
           alt="Hospital da Visão"
           width="270"
           height="110"
+          className="h-auto w-40 sm:w-56"
           style={{
             objectFit: 'contain',
             objectPosition: 'left center',
@@ -216,7 +217,7 @@ export default function SurveyScreen({
         </button>
       </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-10">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 gap-7 sm:gap-10">
         <div className="text-center">
           <h1
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 max-w-xl mx-auto leading-tight"

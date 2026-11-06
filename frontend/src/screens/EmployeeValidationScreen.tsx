@@ -115,7 +115,7 @@ export default function EmployeeValidationScreen({
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <NavBar onLogout={onLogout} subtitle="Atendimento do funcionário" usuario={usuario} />
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 p-4 lg:p-6">
+      <main className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-5 p-3 sm:gap-8 sm:p-4 lg:p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <button type="button" onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
@@ -129,7 +129,7 @@ export default function EmployeeValidationScreen({
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
-          <section className="rounded-3xl border border-gray-100 bg-white p-6" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+          <section className="min-w-0 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center justify-between">
               <div><h2 className="font-bold text-gray-900">Dados para conferência</h2><p className="mt-1 text-xs text-gray-500">Preencha apenas os campos necessários neste atendimento. A conferência é opcional.</p></div>
               <UserRound size={22} className="text-[#00B5CC]" />
@@ -147,7 +147,7 @@ export default function EmployeeValidationScreen({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-gray-100 bg-white p-6" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+          <section className="min-w-0 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-2"><MessageSquareText size={20} className="text-[#00B5CC]" /><h2 className="font-bold text-gray-900">Correções recebidas</h2></div>
             {!hasCorrections ? (
               <div className="flex min-h-64 flex-col items-center justify-center text-center">
@@ -160,7 +160,7 @@ export default function EmployeeValidationScreen({
                 {(Object.keys(corrections) as (keyof PatientData)[]).map(key => (
                   <div key={key} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <div className="text-xs font-semibold uppercase text-amber-700">{key === 'nome' ? 'Nome' : key === 'telefone' ? 'Telefone' : 'E-mail'}</div>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div><span className="text-xs text-gray-500">Original</span><p className="mt-1 text-sm text-gray-500 line-through">{originalData[key] || 'Não informado'}</p></div>
                       <div><span className="text-xs text-gray-500">Correção</span><p className="mt-1 text-sm font-semibold text-gray-900">{corrections[key] || 'Não informado'}</p></div>
                     </div>

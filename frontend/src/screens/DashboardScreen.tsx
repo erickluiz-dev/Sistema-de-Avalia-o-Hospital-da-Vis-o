@@ -342,7 +342,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
       <DashboardLoadingOverlay carregando={carregando} exportando={exportando} />
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <NavBar onLogout={onLogout} subtitle="Menu Administrativo" usuario={usuario} />
-        <main ref={relatorioRef} className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
+        <main ref={relatorioRef} className="flex-1 min-w-0 p-3 sm:p-6 max-w-7xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-1 mb-1 transition-colors nao-exportar">
@@ -352,7 +352,7 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
               <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>Análise Geral</h1>
               <p className="text-gray-500 text-sm">Hospital da Visão</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar" onClick={() => void carregarAvaliacoes(1)} disabled={carregando || exportando}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                 Recarregar

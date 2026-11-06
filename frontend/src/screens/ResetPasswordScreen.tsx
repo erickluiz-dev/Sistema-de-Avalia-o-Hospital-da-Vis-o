@@ -87,7 +87,7 @@ export default function ResetPasswordScreen({
 
   if (sucesso) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 p-3 sm:p-6">
         <div
           className="w-full max-w-sm bg-white rounded-3xl p-10 text-center"
           style={{

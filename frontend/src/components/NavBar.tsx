@@ -24,22 +24,22 @@ function NavBar({
 
   return (
     <header
-      className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between"
+      className="bg-white border-b border-gray-100 px-3 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-y-2 gap-x-3"
       style={{
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
         <Logo size="sm" />
 
         <span className="text-gray-400 text-sm">|</span>
 
-        <span className="text-gray-600 text-sm font-medium">
+        <span className="min-w-0 text-gray-600 text-xs sm:text-sm font-medium">
           {subtitle}
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
             <span className="text-[#00B5CC] text-xs font-semibold">
@@ -54,7 +54,7 @@ function NavBar({
 
         <button
           onClick={onLogout}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
+          className="flex min-h-10 items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors px-2 sm:px-3 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
         >
           <svg
             width="15"

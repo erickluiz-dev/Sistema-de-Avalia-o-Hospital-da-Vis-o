@@ -117,21 +117,22 @@ export default function PatientReviewScreen({
     <div className="min-h-screen bg-gray-50 text-gray-500">
       {/* Cabeçalho institucional compartilhado com o sistema */}
     
-      <main className="mx-auto w-full max-w-4xl px-2 pb-8 pt-10 sm:px-6 sm:pt-11">
-        <div className="flex justify-center items-center w-full mb-15">
+      <main className="mx-auto w-full max-w-4xl px-4 pb-8 pt-6 sm:px-6 sm:pt-11">
+        <div className="mb-8 flex w-full items-center justify-center sm:mb-15">
             <img
             src="/logo.png"
             alt="Hospital da Visão"
             width="270"
             height="110"
+            className="h-auto w-48 sm:w-[270px]"
             style={{
                 objectFit: 'contain',
                 objectPosition: 'left center',
             }}
         /></div>
-        <div className="mb-10 text-center">
+        <div className="mb-7 text-center sm:mb-10">
 
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl text-gray-700">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-700 sm:text-4xl">
             Confira seus dados
           </h1>
 
@@ -142,7 +143,7 @@ export default function PatientReviewScreen({
 
         <form
           onSubmit={submit}
-          className="rounded-3xl border border-blue-100 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8"
+          className="rounded-3xl border border-blue-100 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8"
         >
 
           <div className="grid gap-x-5 gap-y-7 sm:grid-cols-2">
@@ -184,7 +185,7 @@ export default function PatientReviewScreen({
           <button
             type="submit"
             disabled={enviando}
-            className="mt-8 mx-auto flex min-h-[60px] w-fit items-center justify-center gap-2 rounded-2xl bg-[#00B5CC] px-2 py-4 font-semibold text-white transition hover:bg-[#01899b] disabled:cursor-wait disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2"
+            className="mt-8 mx-auto flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#00B5CC] px-5 py-4 font-semibold text-white transition hover:bg-[#01899b] disabled:cursor-wait disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 sm:w-fit sm:px-8"
             style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
           >
             <Send size={20} />
