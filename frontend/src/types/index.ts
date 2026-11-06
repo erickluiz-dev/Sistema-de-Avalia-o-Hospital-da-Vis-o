@@ -29,6 +29,7 @@ export type Avaliacao = {
   terminal: string
   funcionario: string
   comentario: string
+  telefone?: string
 }
 
 export type Usuario = {

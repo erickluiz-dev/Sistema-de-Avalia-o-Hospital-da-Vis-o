@@ -13,6 +13,7 @@ type Avaliacoes struct {
 	FuncionarioID  int64     `json:"funcionario_id"`
 	Funcionario    string    `json:"funcionario"`
 	Comentario     string    `json:"comentario"`
+	Telefone       string    `json:"telefone,omitempty"`
 }
 
 type NovaAvaliacaoRequest struct {

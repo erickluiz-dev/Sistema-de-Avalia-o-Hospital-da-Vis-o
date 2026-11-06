@@ -364,7 +364,8 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 			COALESCE(t.terminal, '') AS terminal,
 			a.funcionario_id,
 			COALESCE(f.nome, '') AS funcionario,
-			COALESCE(a.comentario, '') AS comentario
+			COALESCE(a.comentario, '') AS comentario,
+			COALESCE(a.telefone_encrypted, ''::bytea) AS telefone_encrypted
 		` + baseWhere + `
 		ORDER BY a.id DESC
 		LIMIT $` + strconv.Itoa(argIndex) + `
@@ -396,6 +397,7 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var avaliacao models.Avaliacoes
+		var telefoneCriptografado []byte
 
 		err := rows.Scan(
 			&avaliacao.Id,
@@ -408,6 +410,7 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 			&avaliacao.FuncionarioID,
 			&avaliacao.Funcionario,
 			&avaliacao.Comentario,
+			&telefoneCriptografado,
 		)
 		if err != nil {
 			log.Println("Erro ao ler avaliação:", err)
@@ -420,6 +423,14 @@ func (h *AvaliacaoHandler) Listar(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
+
+		telefone, err := services.DecryptPhone(telefoneCriptografado, h.PhoneEncryptionKey)
+		if err != nil {
+			log.Println("Erro ao descriptografar telefone da avaliação:", err)
+			http.Error(w, "Erro ao processar telefone da avaliação", http.StatusInternalServerError)
+			return
+		}
+		avaliacao.Telefone = telefone
 
 		avaliacoes = append(
 			avaliacoes,

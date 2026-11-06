@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { ratingColor, ratingLabel } from '../../../utils/ratings'
 import type { Avaliacao } from '../../../types'
 
+function formatPhone(value?: string) {
+  const digits = (value || '').replace(/\D/g, '')
+  if (digits.length === 11) {
+    return digits.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+  if (digits.length === 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+  return value || ''
+}
+
 type Props = {
   avaliacoes: Avaliacao[]
   search: string
@@ -350,6 +361,22 @@ export default function AvaliacoesRecentesTable({
 
                     <span className="text-sm font-semibold text-gray-800">
                       {selectedEval.terminal || '-'}
+                    </span>
+                  </div>
+
+                  {/* Telefone para contato */}
+                  <div
+                    className="rounded-2xl p-4 flex flex-col gap-1 min-w-0"
+                    style={{
+                      background: '#f8fafc',
+                    }}
+                  >
+                    <span className="text-xs font-semibold text-gray-400 tracking-wide">
+                      TELEFONE
+                    </span>
+
+                    <span className="text-sm font-semibold text-gray-800 break-words">
+                      {formatPhone(selectedEval.telefone) || 'Não informado'}
                     </span>
                   </div>
                 </div>

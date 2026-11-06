@@ -27,3 +27,62 @@ html, body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+
+/* Ajustes responsivos globais — preservam cores, tipografia e identidade visual. */
+html {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: clip;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
+input, select, textarea, button {
+  font: inherit;
+}
+
+@media (max-width: 640px) {
+  /* Evita que conteúdo longo force a largura do viewport. */
+  h1, h2, h3, p, label, th, td, button, a {
+    overflow-wrap: anywhere;
+  }
+
+  /* Mantém tabelas completas sem comprimir colunas; rolagem fica no contêiner. */
+  .overflow-x-auto {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overflow-x-auto table {
+    min-width: 620px;
+  }
+
+  /* Área mínima confortável para interação por toque. */
+  button, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  input, select, textarea {
+    max-width: 100%;
+    min-width: 0;
+    scroll-margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .overflow-x-auto table {
+    min-width: 580px;
+  }
+}
