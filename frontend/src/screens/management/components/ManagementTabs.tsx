@@ -10,12 +10,12 @@ export default function ManagementTabs({
   setAba,
 }: ManagementTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2 mb-6">
+    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
 
       <button
         type="button"
         onClick={() => setAba('funcionarios')}
-        className={`px-4 py-2 rounded-xl text-sm font-medium ${
+        className={`min-w-0 flex items-center justify-center px-3 sm:px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'funcionarios'
             ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
@@ -32,7 +32,7 @@ export default function ManagementTabs({
       <button
         type="button"
         onClick={() => setAba('terminais')}
-        className={`px-4 py-2 rounded-xl text-sm font-medium ${
+        className={`min-w-0 flex items-center justify-center px-3 sm:px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'terminais'
             ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
@@ -49,7 +49,7 @@ export default function ManagementTabs({
       <button
         type="button"
         onClick={() => setAba('departamentos')}
-        className={`px-4 py-2 rounded-xl text-sm font-medium ${
+        className={`min-w-0 flex items-center justify-center px-3 sm:px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'departamentos'
             ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'
@@ -66,7 +66,7 @@ export default function ManagementTabs({
       <button
         type="button"
         onClick={() => setAba('usuarios')}
-        className={`px-4 py-2 rounded-xl text-sm font-medium ${
+        className={`min-w-0 flex items-center justify-center px-3 sm:px-4 py-2 rounded-xl text-sm font-medium ${
           aba === 'usuarios'
             ? 'text-white'
             : 'bg-white text-gray-600 border border-gray-200'

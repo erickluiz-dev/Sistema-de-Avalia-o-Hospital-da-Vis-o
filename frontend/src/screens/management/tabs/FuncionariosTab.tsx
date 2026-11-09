@@ -66,7 +66,7 @@ export default function FuncionariosTab({
 }: FuncionariosTabProps) {
   return (
     <div>
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
             Funcionários
@@ -80,7 +80,7 @@ export default function FuncionariosTab({
         <button
           type="button"
           onClick={onNovoFuncionario}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
           style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           <span className="text-lg leading-none">+</span>
@@ -88,8 +88,8 @@ export default function FuncionariosTab({
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="max-w-full overflow-x-auto overscroll-x-contain">
+        <table className="w-full text-sm min-w-[900px] sm:min-w-0">
           <thead>
             <tr className="bg-gray-50 text-xs text-gray-400 uppercase">
               <th className="px-4 py-3 text-left">
@@ -157,7 +157,7 @@ export default function FuncionariosTab({
                           }),
                         )
                       }}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+                      className="w-full min-w-[180px] px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
                     >
                       <option value="">
                         Selecione um departamento
@@ -199,7 +199,7 @@ export default function FuncionariosTab({
                           }),
                         )
                       }}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC] disabled:bg-gray-50 disabled:text-gray-400"
+                      className="w-full min-w-[180px] px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC] disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">
                         {departamentoSelecionado === ''
@@ -239,7 +239,7 @@ export default function FuncionariosTab({
                           funcionario.id
                         ] === ''
                       }
-                      className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ background: '#00acb2a4'}}
                     >
                       {aplicandoFuncionario ===

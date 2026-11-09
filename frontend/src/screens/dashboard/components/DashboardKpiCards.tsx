@@ -11,7 +11,7 @@ type DashboardKpiCardsProps = {
 
 export default function DashboardKpiCards({ cards }: DashboardKpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((k) => (
         <div
           key={k.label}

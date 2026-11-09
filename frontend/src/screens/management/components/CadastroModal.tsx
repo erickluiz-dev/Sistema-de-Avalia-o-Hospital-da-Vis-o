@@ -78,7 +78,7 @@ export default function CadastroModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 backdrop-blur-[2px] p-3 sm:p-6">
       <div
-        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto bg-white rounded-3xl p-4 sm:p-6"
+        className="my-auto w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain bg-white rounded-3xl p-5 sm:p-6"
         style={{
           boxShadow:
             '0 20px 60px rgba(0,0,0,0.18)',
@@ -365,7 +365,7 @@ export default function CadastroModal({
         {/* BOTÕES */}
         {/* ================================================== */}
 
-        <div className="flex gap-3 mt-6">
+        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
           <button
             type="button"
             onClick={fecharModal}

@@ -15,7 +15,7 @@ export default function DepartamentosTab({
   return (
     <div>
       {/* Cabeçalho */}
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
             Departamentos
@@ -29,7 +29,7 @@ export default function DepartamentosTab({
         <button
           type="button"
           onClick={onNovoDepartamento}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
         >
           <span className="text-lg leading-none">+</span>
@@ -38,8 +38,8 @@ export default function DepartamentosTab({
       </div>
 
       {/* Tabela */}
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="mt-6 max-w-full overflow-x-auto overscroll-x-contain">
+        <table className="w-full text-sm min-w-[440px] sm:min-w-0">
           <thead>
             <tr className="bg-gray-50 text-xs text-gray-400 uppercase">
               <th className="px-4 py-3 text-left">
