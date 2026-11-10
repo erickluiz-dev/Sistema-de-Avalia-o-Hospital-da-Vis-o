@@ -5,6 +5,8 @@ import ManagementContent from './management/components/ManagementContent'
 
 import { useManagementScreen } from './management/hooks/useManagementScreen'
 
+import { useEffect } from 'react'
+
 import NavBar from '../components/NavBar'
 
 import type { Usuario } from '../types'
@@ -28,6 +30,17 @@ export default function ManagementScreen({
     contentProps,
     modalProps,
   } = useManagementScreen()
+
+  useEffect(() => {
+    const html = document.documentElement
+    const valorAnterior = html.style.scrollbarGutter
+
+    html.style.scrollbarGutter = 'stable'
+
+    return () => {
+      html.style.scrollbarGutter = valorAnterior
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

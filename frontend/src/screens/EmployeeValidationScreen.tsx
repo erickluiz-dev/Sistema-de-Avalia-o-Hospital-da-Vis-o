@@ -42,8 +42,8 @@ interface EmployeeValidationScreenProps {
 function ConnectionBadge({ config }: { config: ConnectionConfig }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700"><Building2 size={14} />{config.department}</span>
-      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700"><MapPin size={14} />{config.terminal}</span>
+      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700">{config.department}</span>
+      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700">{config.terminal}</span>
       <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#00B5CC]/30 bg-[#E0F2FE] px-3 py-2 text-xs font-semibold text-[#00B5CC]"><Wifi size={14} />Conectado</span>
     </div>
   )
@@ -176,11 +176,11 @@ export default function EmployeeValidationScreen({
           <div className="flex-1 px-2 text-xs text-gray-500">
             {status === 'waiting' ? 'Você pode enviar os dados ou liberar a avaliação diretamente.' : status === 'checking' ? 'Aguardando conferência; ela não é obrigatória.' : status === 'corrections' ? 'Confira as correções, se houver.' : status === 'validated' ? 'Conferência concluída.' : 'Avaliação liberada; aguardando o tablet iniciar a pesquisa.'}
           </div>
-          <button type="button" disabled={enviando || status === 'survey'} onClick={() => void validate()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white hover:bg-[#01899b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}>
-            <Send size={17} />{enviando ? 'Enviando...' : hasCorrections ? 'Enviar dados' : 'Enviar dados'}
+          <button type="button" disabled={enviando || status === 'survey'} onClick={() => void validate()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+            {enviando ? 'Enviando...' : hasCorrections ? 'Enviar dados' : 'Enviar dados'}
           </button>
-          <button type="button" disabled={!canRelease} onClick={() => void onReleaseSurvey?.()}  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white hover:bg-[#01899b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}>
-            <Smile size={18} />Avaliar
+          <button type="button" disabled={!canRelease} onClick={() => void onReleaseSurvey?.()}  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00B5CC] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ">
+            Avaliar
           </button>
         </div>
       </main>

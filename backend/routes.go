@@ -77,6 +77,7 @@ func configurarRotas(
 	if len(atendimentoManagers) > 0 && atendimentoManagers[0] != nil {
 		atendimentoHandler := &handlers.AtendimentoHandler{
 			Manager: atendimentoManagers[0],
+			DB:      terminalHandler.DB,
 		}
 
 		mux.Handle(

@@ -8,9 +8,14 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type AtendimentoHandler struct{ Manager *atendimento.Manager }
+type AtendimentoHandler struct {
+	Manager *atendimento.Manager
+	DB      *pgxpool.Pool
+}
 
 type atendimentoRequest struct {
 	DepartmentID int    `json:"department_id"`
@@ -39,6 +44,41 @@ func (h *AtendimentoHandler) Presence(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Requisição inválida", http.StatusBadRequest)
 		return
 	}
+	// A conexão só pode ser registrada quando existe funcionário ativo
+	// vinculado ao terminal selecionado e ambos pertencem ao departamento ativo.
+	var possuiFuncionario bool
+	err := h.DB.QueryRow(
+		r.Context(),
+		`
+		SELECT EXISTS (
+			SELECT 1
+			FROM funcionarios AS f
+			INNER JOIN terminais AS t
+				ON t.id = f.terminal_id
+			INNER JOIN departamentos AS d
+				ON d.id = t.departamento_id
+			WHERE f.ativo = TRUE
+			  AND t.ativo = TRUE
+			  AND d.ativo = TRUE
+			  AND t.id = $1
+			  AND t.departamento_id = $2
+		)
+		`,
+		req.TerminalID,
+		req.DepartmentID,
+	).Scan(&possuiFuncionario)
+	if err != nil {
+		http.Error(w, "Não foi possível validar o vínculo do funcionário", http.StatusInternalServerError)
+		return
+	}
+	if !possuiFuncionario {
+		// Remove eventual presença antiga deste dispositivo para impedir
+		// que uma conexão previamente aberta continue válida.
+		h.Manager.Leave(req.DepartmentID, req.TerminalID, req.ClientID)
+		http.Error(w, "Não existe funcionário ativo vinculado a este departamento e terminal", http.StatusConflict)
+		return
+	}
+
 	status, err := h.Manager.Heartbeat(req.DepartmentID, req.TerminalID, req.ClientID, atendimento.Role(req.Role))
 	if err != nil {
 		if errors.Is(err, atendimento.ErrRoleAlreadyConnected) {
