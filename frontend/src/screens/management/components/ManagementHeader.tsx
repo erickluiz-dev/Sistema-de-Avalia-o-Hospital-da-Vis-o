@@ -34,10 +34,7 @@ export default function ManagementHeader({
         Gerenciamento
       </h1>
 
-      <p className="text-sm text-gray-500">
-        Administração do sistema
-      </p>
-
+    
     </div>
   )
 }

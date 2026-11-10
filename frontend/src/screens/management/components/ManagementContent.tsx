@@ -64,7 +64,7 @@ export default function ManagementContent({
   onExcluir,
 }: ManagementContentProps) {
   return (
-    <div className="min-w-0 w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-6">
+    <div className="box-border flex h-auto min-h-[420px] min-w-0 flex-col p-4 sm:min-h-[452px] sm:p-6">
 
       {aba === 'funcionarios' && (
         <FuncionariosTab

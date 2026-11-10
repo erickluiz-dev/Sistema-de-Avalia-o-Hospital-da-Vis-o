@@ -66,8 +66,8 @@ export default function AvaliacoesRecentesTable({
           overflow: 'hidden',
         }}
       >
-        <div className="px-4 sm:px-5 py-4 border-b border-gray-100">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h3 className="font-semibold text-gray-900 text-sm">
                 Avaliações Recentes
@@ -78,19 +78,19 @@ export default function AvaliacoesRecentesTable({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
-                className="w-full min-w-0 px-2 sm:px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+                className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
               />
 
               <input
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="w-full min-w-0 px-2 sm:px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+                className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
               />
 
               <button
@@ -98,7 +98,7 @@ export default function AvaliacoesRecentesTable({
                   setPagina(1)
                   void carregarAvaliacoes(1)
                 }}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium text-white"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-white"
                 style={{
                   background:
                     'linear-gradient(135deg,#04c7e0,#0697aa)',
@@ -118,12 +118,12 @@ export default function AvaliacoesRecentesTable({
                     void carregarAvaliacoes(1)
                   }, 0)
                 }}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm text-gray-600 border border-gray-200"
+                className="px-4 py-2 rounded-xl text-sm text-gray-600 border border-gray-200"
               >
                 Limpar
               </button>
 
-              <div className="relative col-span-2 sm:col-span-1 w-full sm:w-auto">
+              <div className="relative">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                   width="14"
@@ -138,15 +138,15 @@ export default function AvaliacoesRecentesTable({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Pesquisar..."
-                  className="w-full sm:w-52 min-w-0 pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC]"
+                  className="pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B5CC] w-52"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-full overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[760px] text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-xs text-gray-400 font-semibold uppercase tracking-wide">
                 <th className="px-5 py-3 text-left">Data</th>
@@ -199,14 +199,14 @@ export default function AvaliacoesRecentesTable({
             </tbody>
           </table>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
             <span className="text-sm text-gray-500">
               {totalAvaliacoes === 0
                 ? 'Nenhuma avaliação encontrada'
                 : `Página ${pagina} de ${totalPaginas} · ${totalAvaliacoes} avaliações`}
             </span>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-2">
               <button
                 disabled={pagina <= 1 || carregando}
                 onClick={() =>
@@ -248,7 +248,7 @@ export default function AvaliacoesRecentesTable({
 
         return (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 sm:p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{
               background: 'rgba(15,23,42,0.45)',
               backdropFilter: 'blur(6px)',
@@ -256,14 +256,14 @@ export default function AvaliacoesRecentesTable({
             onClick={() => setSelectedEval(null)}
           >
             <div
-              className="my-auto bg-white rounded-3xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain flex flex-col"
+              className="bg-white rounded-3xl w-full max-w-md flex flex-col"
               style={{
                 boxShadow:
                   '0 32px 80px rgba(0,0,0,0.22)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-6 sm:pb-8 flex flex-col gap-5 sm:gap-6">
+              <div className="px-8 pt-7 pb-8 flex flex-col gap-6">
 
                 {/* Título */}
                 <div className="text-center">
@@ -295,7 +295,7 @@ export default function AvaliacoesRecentesTable({
                 </div>
 
                 {/* Informações */}
-                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
 
                   {/* Data */}
                   <div

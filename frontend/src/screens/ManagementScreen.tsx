@@ -38,25 +38,25 @@ export default function ManagementScreen({
         usuario={usuario}
       />
 
-      <main className="flex-1 max-w-7xl w-full min-w-0 mx-auto p-3 sm:p-6">
-
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:p-6">
         <ManagementHeader onBack={onBack} />
 
-        <ManagementTabs
-          aba={aba}
-          setAba={setAba}
-        />
-
-        {carregando ? (
-          <div className="bg-white rounded-2xl p-10 flex items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#00B5CC]" />
-          </div>
-        ) : (
-          <ManagementContent
-            {...contentProps}
+        <section className="w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <ManagementTabs
+            aba={aba}
+            setAba={setAba}
           />
-        )}
 
+          {carregando ? (
+            <div className="flex min-h-48 items-center justify-center p-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#00B5CC]" />
+            </div>
+          ) : (
+            <ManagementContent
+              {...contentProps}
+            />
+          )}
+        </section>
       </main>
 
       <CadastroModal

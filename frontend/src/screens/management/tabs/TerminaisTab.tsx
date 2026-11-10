@@ -1,4 +1,6 @@
-import { Trash2 } from 'lucide-react'
+import { Search, Trash2, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import ManagementPagination from '../components/ManagementPagination'
 type Terminal = {
   id: number
   terminal: string
@@ -16,6 +18,25 @@ export default function TerminaisTab({
   onNovoTerminal,
   onExcluir,
 }: TerminaisTabProps) {
+  const [busca, setBusca] = useState('')
+  const terminaisFiltrados = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase('pt-BR')
+    if (!termo) return terminais
+    return terminais.filter((terminal) =>
+      [terminal.terminal, terminal.departamento]
+        .some((valor) => valor.toLocaleLowerCase('pt-BR').includes(termo)),
+    )
+  }, [busca, terminais])
+
+  const ITENS_POR_PAGINA = 10
+  const [pagina, setPagina] = useState(1)
+  const totalPaginas = Math.max(1, Math.ceil(terminaisFiltrados.length / ITENS_POR_PAGINA))
+  const paginaAtual = Math.min(pagina, totalPaginas)
+  const terminaisFiltradosPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
+    return terminaisFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA)
+  }, [terminaisFiltrados, paginaAtual])
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6">
@@ -24,9 +45,11 @@ export default function TerminaisTab({
             Terminais
           </h2>
 
-          <p className="text-sm text-gray-500 mt-1">
-            {terminais.length} terminal(is) cadastrado(s).
-          </p>
+          <div className="relative mt-3 w-full sm:w-[min(100%,360px)]">
+            <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" value={busca} onChange={(e) => { setBusca(e.target.value); setPagina(1) }} placeholder="Buscar terminal..." aria-label="Buscar terminal por nome ou departamento" className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm text-gray-700 outline-none transition focus:border-[#00B5CC] focus:ring-2 focus:ring-[#00B5CC]/20 placeholder:text-gray-400" />
+            {busca && <button type="button" onClick={() => { setBusca(''); setPagina(1) }} aria-label="Limpar pesquisa" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"><X size={16} /></button>}
+          </div>
         </div>
 
         <button
@@ -44,7 +67,12 @@ export default function TerminaisTab({
       </div>
 
       <div className="mt-6 max-w-full overflow-x-auto overscroll-x-contain">
-        <table className="w-full text-sm min-w-[560px] sm:min-w-0">
+        <table className="w-full table-fixed text-sm min-w-[560px] sm:min-w-0">
+          <colgroup>
+            <col className="w-[33%]" />
+            <col className="w-[53%]" />
+            <col className="w-[14%]" />
+          </colgroup>
           <thead>
             <tr className="bg-gray-50 text-xs text-gray-400 uppercase">
               <th className="px-4 py-3 text-left">
@@ -59,7 +87,7 @@ export default function TerminaisTab({
           </thead>
 
           <tbody>
-            {terminais.map((terminal) => (
+            {terminaisFiltradosPaginados.map((terminal) => (
               <tr
                 key={terminal.id}
                 className="border-t border-gray-50"
@@ -80,9 +108,20 @@ export default function TerminaisTab({
                 </td>
               </tr>
             ))}
+            {terminaisFiltrados.length === 0 && (
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-500">{busca ? 'Nenhum terminal encontrado para essa pesquisa.' : 'Nenhum terminal cadastrado.'}</td></tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      <ManagementPagination
+        pagina={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={terminaisFiltrados.length}
+        nomeItens="terminais"
+        onChange={setPagina}
+      />
     </div>
   )
 }
