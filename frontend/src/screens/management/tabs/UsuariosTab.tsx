@@ -51,11 +51,9 @@ export default function UsuariosTab({
         <button
           type="button"
           onClick={onNovoUsuario}
-          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: 'linear-gradient(135deg,#04c7e0,#0697aa)', boxShadow: '0 2px 8px #00b4cc59' }}
+          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00B5CC]"
         >
-          <span className="text-lg leading-none">+</span>
-          Usuário
+          Novo usuário
         </button>
       </div>
 

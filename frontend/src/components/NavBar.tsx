@@ -40,18 +40,6 @@ function NavBar({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-[#00B5CC] text-xs font-semibold">
-              {iniciais}
-            </span>
-          </div>
-
-          <span className="text-gray-700 text-sm font-medium hidden sm:block">
-            {usuario?.nome ?? 'Usuário'}
-          </span>
-        </div>
-
         <button
           onClick={onLogout}
           className="flex min-h-10 items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors px-2 sm:px-3 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
@@ -67,9 +55,20 @@ function NavBar({
               fill="currentColor"
             />
           </svg>
-
           Sair
         </button>
+
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <span className="text-[#00B5CC] text-xs font-semibold">
+              {iniciais}
+            </span>
+          </div>
+
+          <span className="text-gray-700 text-sm font-medium hidden sm:block">
+            {usuario?.nome ?? 'Usuário'}
+          </span>
+        </div>
       </div>
     </header>
   )

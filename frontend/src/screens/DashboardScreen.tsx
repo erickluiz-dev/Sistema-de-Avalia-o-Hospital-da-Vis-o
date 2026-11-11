@@ -350,7 +350,6 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
                 Voltar ao menu principal
               </button>
               <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>Análise Geral</h1>
-              <p className="text-gray-500 text-sm">Hospital da Visão</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors nao-exportar" onClick={() => void carregarAvaliacoes(1)} disabled={carregando || exportando}>
