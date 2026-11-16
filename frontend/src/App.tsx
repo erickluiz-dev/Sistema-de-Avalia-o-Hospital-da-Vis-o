@@ -447,9 +447,10 @@ export default function App() {
             usuario={usuario}
             onNav={setScreen}
             onLogout={handleLogout}
-            onStartSurvey={(modo) => {
+            onStartSurvey={(modo: ModoAtendimento) => {
               setModoAtendimento(modo)
               setMostrarDepartamento(true)
+              setScreen('home')
             }}
           />
 
@@ -687,6 +688,12 @@ export default function App() {
           }}
           onLogout={handleLogout}
           usuario={usuario}
+          onNavigate={setScreen}
+          onStartSurvey={(modo: ModoAtendimento) => {
+            setModoAtendimento(modo)
+            setMostrarDepartamento(true)
+            setScreen('home')
+          }}
         />
       )}
 
@@ -698,6 +705,12 @@ export default function App() {
           }}
           onLogout={handleLogout}
           usuario={usuario}
+          onNavigate={setScreen}
+          onStartSurvey={(modo: ModoAtendimento) => {
+            setModoAtendimento(modo)
+            setMostrarDepartamento(true)
+            setScreen('home')
+          }}
         />
       )}
     </>

@@ -27,7 +27,7 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
         className={`font-display font-700 tracking-tight text-gray-700 ${txt}`} 
         style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }} 
       > 
-        Hospital da Visão 
+        Hospital da Visão
       </span> 
     </div> 
   ) 

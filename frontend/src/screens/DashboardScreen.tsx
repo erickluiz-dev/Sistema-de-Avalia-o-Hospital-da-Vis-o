@@ -2,8 +2,8 @@ import { useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import * as XLSX from 'xlsx'
 
-import NavBar from '../components/NavBar'
-import type { Usuario } from '../types'
+import SidebarLayout from './management/components/Sidebar'
+import type { ModoAtendimento, Screen, Usuario } from '../types'
 
 import AvaliacaoPorDepartamentoChart from './dashboard/components/AvaliacaoPorDepartamentoChart'
 import AvaliacaoPorFuncionarioChart from './dashboard/components/AvaliacaoPorFuncionarioChart'
@@ -21,9 +21,17 @@ type DashboardScreenProps = {
   onBack: () => void
   onLogout: () => void
   usuario: Usuario | null
+  onNavigate: (screen: Screen) => void
+  onStartSurvey: (modo: ModoAtendimento) => void
 }
 
-export default function DashboardScreen({ onBack, onLogout, usuario }: DashboardScreenProps) {
+export default function DashboardScreen({
+  onBack,
+  onLogout,
+  usuario,
+  onNavigate,
+  onStartSurvey,
+}: DashboardScreenProps) {
   const {
     search,
     setSearch,
@@ -338,10 +346,16 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
   }
 
   return (
-    <div className="relative min-h-screen">
-      <DashboardLoadingOverlay carregando={carregando} exportando={exportando} />
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <NavBar onLogout={onLogout} subtitle="Menu Administrativo" usuario={usuario} />
+    <SidebarLayout
+      usuario={usuario}
+      subtitle="Menu Administrativo"
+      activeScreen="dashboard"
+      onNavigate={onNavigate}
+      onStartSurvey={onStartSurvey}
+      onLogout={onLogout}
+    >
+      <div className="relative min-h-full bg-gray-50">
+        <DashboardLoadingOverlay carregando={carregando} exportando={exportando} />
         <main ref={relatorioRef} className="flex-1 min-w-0 p-3 sm:p-6 max-w-7xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -402,6 +416,6 @@ export default function DashboardScreen({ onBack, onLogout, usuario }: Dashboard
           </div>
         </main>
       </div>
-    </div>
+    </SidebarLayout>
   )
 }

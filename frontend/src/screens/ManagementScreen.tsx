@@ -7,20 +7,24 @@ import { useManagementScreen } from './management/hooks/useManagementScreen'
 
 import { useEffect } from 'react'
 
-import NavBar from '../components/NavBar'
+import SidebarLayout from './management/components/Sidebar'
 
-import type { Usuario } from '../types'
+import type { ModoAtendimento, Screen, Usuario } from '../types'
 
 type ManagementScreenProps = {
   onBack: () => void
   onLogout: () => void
   usuario: Usuario | null
+  onNavigate: (screen: Screen) => void
+  onStartSurvey: (modo: ModoAtendimento) => void
 }
 
 export default function ManagementScreen({
   onBack,
   onLogout,
   usuario,
+  onNavigate,
+  onStartSurvey,
 }: ManagementScreenProps) {
 
   const {
@@ -43,15 +47,16 @@ export default function ManagementScreen({
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-
-      <NavBar
-        onLogout={onLogout}
-        subtitle="Gerenciamento"
-        usuario={usuario}
-      />
-
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:p-6">
+    <SidebarLayout
+      usuario={usuario}
+      subtitle="Gerenciamento"
+      activeScreen="management"
+      onNavigate={onNavigate}
+      onStartSurvey={onStartSurvey}
+      onLogout={onLogout}
+    >
+      <div className="min-h-full bg-gray-50">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:p-6">
         <ManagementHeader onBack={onBack} />
 
         <section className="w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -75,7 +80,7 @@ export default function ManagementScreen({
       <CadastroModal
         {...modalProps}
       />
-
-    </div>
+      </div>
+    </SidebarLayout>
   )
 }
