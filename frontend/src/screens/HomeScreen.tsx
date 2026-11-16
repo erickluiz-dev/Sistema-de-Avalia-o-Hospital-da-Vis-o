@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from 'recharts'
 
-import NavBar from '../components/NavBar'
+import SidebarLayout from './management/components/Sidebar'
 import { apiFetch } from '../services/api'
 import type { Estatisticas, ModoAtendimento, Screen, Usuario } from '../types'
 
@@ -190,9 +190,15 @@ export default function HomeScreen({
   }).format(new Date())
 
   return (
-    <div className="min-h-screen bg-[#F5F7F9] flex flex-col">
-      <NavBar onLogout={onLogout} subtitle="Menu Principal" usuario={usuario} />
-
+    <SidebarLayout
+      usuario={usuario}
+      subtitle="Menu Principal"
+      activeScreen="home"
+      onNavigate={onNav}
+      onStartSurvey={onStartSurvey}
+      onLogout={onLogout}
+    >
+      <div className="min-h-full bg-[#F5F7F9] flex flex-col">
       <main className="w-full max-w-[1440px] mx-auto flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <section className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -202,9 +208,6 @@ export default function HomeScreen({
             <h1 className="text-[28px] font-semibold tracking-tight text-[#202B3A] sm:text-[32px]">
               Menu Principal
             </h1>
-            <p className="mt-1.5 text-sm text-[#7A8795]">
-              Acompanhe a experiência dos pacientes e acesse as áreas do sistema.
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -213,7 +216,7 @@ export default function HomeScreen({
               type="button"
               onClick={() => void carregarEstatisticas()}
               disabled={carregando}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E3E8ED] bg-white px-3.5 text-sm font-medium text-[#536170] shadow-sm transition hover:border-[#B8DDE2] hover:text-[#078FA2] disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E3E8ED] bg-white px-3.5 text-sm font-medium text-[#028799] shadow-sm transition hover:border-[#B8DDE2] hover:text-[#078FA2] disabled:cursor-wait disabled:opacity-60"
             >
               <RefreshCw size={15} className={carregando ? 'animate-spin' : ''} />
               Atualizar
@@ -225,7 +228,7 @@ export default function HomeScreen({
           <article className="rounded-2xl border border-[#E7EBEF] bg-white p-5 shadow-[0_2px_9px_rgba(27,45,64,0.035)]">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-[#788695]">Pontuação Média</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E9F8FA] text-[#08AFC2]"><Star size={17} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl"></span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <strong className="text-[34px] font-semibold leading-none tracking-tight text-[#202B3A]">
@@ -239,7 +242,7 @@ export default function HomeScreen({
           <article className="rounded-2xl border border-[#E7EBEF] bg-white p-5 shadow-[0_2px_9px_rgba(27,45,64,0.035)]">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-[#788695]">Satisfação Geral</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF7F0] text-[#229765]"><CheckCircle2 size={18} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl"></span>
             </div>
             <div className="mt-3 flex items-baseline gap-1">
               <strong className="text-[34px] font-semibold leading-none tracking-tight text-[#202B3A]">
@@ -248,14 +251,14 @@ export default function HomeScreen({
               <span className="text-sm text-[#9AA5B0]">%</span>
             </div>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EDF1F3]">
-              <div className="h-full rounded-full bg-[#20A875] transition-all" style={{ width: `${Math.min(100, Math.max(0, satisfacaoGeral))}%` }} />
+              <div className="h-full rounded-full bg-[#97A2AD] transition-all" style={{ width: `${Math.min(100, Math.max(0, satisfacaoGeral))}%` }} />
             </div>
           </article>
 
           <article className="rounded-2xl border border-[#E7EBEF] bg-white p-5 shadow-[0_2px_9px_rgba(27,45,64,0.035)]">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-[#788695]">Avaliações de Hoje</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EDF4FE] text-[#3976C6]"><Clock3 size={18} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl"></span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <strong className="text-[34px] font-semibold leading-none tracking-tight text-[#202B3A]">
@@ -340,7 +343,7 @@ export default function HomeScreen({
                 <h2 className="text-[15px] font-semibold text-[#273445]">Acesso Rápido</h2>
                 <p className="mt-1 text-xs text-[#929EAA]">Acesse as principais áreas do sistema</p>
               </div>
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F1F7F8] text-[#08AFC2]"><ArrowUpRight size={16} /></span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F1F7F8] text-[#748391]"><ArrowUpRight size={16} /></span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
@@ -352,21 +355,17 @@ export default function HomeScreen({
                     key={shortcut.title}
                     type="button"
                     onClick={shortcut.action}
-                    disabled={shortcut.soon}
-                    title={shortcut.soon ? `${shortcut.title} — módulo em desenvolvimento` : undefined}
                     className="group flex min-h-[76px] min-w-0 items-center gap-3 rounded-xl border border-[#EDF0F2] bg-white p-3 text-left transition duration-150 hover:-translate-y-0.5 hover:border-[#D7E8EB] hover:bg-[#FBFDFD] hover:shadow-[0_5px_15px_rgba(25,57,70,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00AFC4] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.surface} ${tone.icon}`}>
-                      <Icon size={19} strokeWidth={1.8} />
-                    </span>
+                    
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-semibold leading-snug text-[#344253]">
                         {shortcut.title}
-                        {shortcut.soon && <span className="rounded-full bg-[#F5F1E8] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#9A793C]">Em breve</span>}
+                        
                       </span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-[#929EAA]">{shortcut.description}</span>
                     </span>
-                    {!shortcut.soon && <ChevronRight size={15} className="shrink-0 text-[#AAB4BD] transition group-hover:translate-x-0.5 group-hover:text-[#08AFC2]" />}
+                    {<ChevronRight size={15} className="shrink-0 text-[#AAB4BD] transition group-hover:translate-x-0.5 group-hover:text-[#08AFC2]" />}
                   </button>
                 )
               })}
@@ -376,9 +375,9 @@ export default function HomeScreen({
 
         <footer className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t border-[#E7EBEF] pt-4 text-[11px] text-[#A0AAB4]">
           <span>Hospital da Visão · Sistema de Avaliação de Satisfação</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[#22A879]" /> Indicadores conectados ao sistema</span>
         </footer>
       </main>
-    </div>
+      </div>
+    </SidebarLayout>
   )
 }
