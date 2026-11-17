@@ -1247,6 +1247,156 @@ func (h *GerenciamentoHandler) AtualizarDepartamento(
 	json.NewEncoder(w).Encode(departamento)
 }
 
+// AtualizarPermissaoAdministrador altera exclusivamente o privilégio
+// administrativo de um usuário. A operação é protegida por transação para
+// impedir que duas requisições removam simultaneamente o último administrador.
+func (h *GerenciamentoHandler) AtualizarPermissaoAdministrador(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	usuarioAtual, ok := middleware.UsuarioDoContexto(r)
+	if !ok {
+		http.Error(w, "Não autenticado", http.StatusUnauthorized)
+		return
+	}
+
+	idTexto := strings.TrimSuffix(
+		strings.TrimPrefix(r.URL.Path, "/admin/usuarios/"),
+		"/administrador",
+	)
+	id, err := strconv.ParseInt(idTexto, 10, 64)
+	if err != nil || id <= 0 {
+		http.Error(w, "ID do usuário inválido", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Administrador *bool `json:"administrador"`
+	}
+	if err := decodeJSON(w, r, 10<<10, &req); err != nil {
+		return
+	}
+	if req.Administrador == nil {
+		http.Error(w, "O campo administrador é obrigatório", http.StatusBadRequest)
+		return
+	}
+
+	if usuarioAtual.ID == id {
+		http.Error(w, "Não é permitido alterar a própria permissão de administrador", http.StatusConflict)
+		return
+	}
+
+	tx, err := h.DB.Begin(r.Context())
+	if err != nil {
+		log.Println("Erro ao iniciar alteração de permissão:", err)
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	// Serializa alterações de privilégio para preservar a regra do último admin.
+	if _, err := tx.Exec(r.Context(), `LOCK TABLE usuarios IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		log.Println("Erro ao bloquear usuários para alteração de permissão:", err)
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+
+	var administrador, ativo bool
+	err = tx.QueryRow(
+		r.Context(),
+		`SELECT administrador, ativo FROM usuarios WHERE id = $1 FOR UPDATE`,
+		id,
+	).Scan(&administrador, &ativo)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+			return
+		}
+		log.Println("Erro ao consultar usuário para alteração de permissão:", err)
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+	if !ativo {
+		http.Error(w, "Não é possível alterar a permissão de um usuário desativado", http.StatusConflict)
+		return
+	}
+
+	novoStatus := *req.Administrador
+	if administrador == novoStatus {
+		var usuario models.UsuarioGerenciamento
+		err = tx.QueryRow(r.Context(), `
+			SELECT id, nome, login, administrador
+			FROM usuarios WHERE id = $1
+		`, id).Scan(&usuario.ID, &usuario.Nome, &usuario.Login, &usuario.Administrador)
+		if err != nil {
+			http.Error(w, "Não foi possível consultar o usuário", http.StatusInternalServerError)
+			return
+		}
+		if err := tx.Commit(r.Context()); err != nil {
+			http.Error(w, "Não foi possível concluir a operação", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(usuario)
+		return
+	}
+
+	if administrador && !novoStatus {
+		var administradoresAtivos int
+		err = tx.QueryRow(r.Context(), `
+			SELECT COUNT(*) FROM usuarios
+			WHERE administrador = TRUE AND ativo = TRUE
+		`).Scan(&administradoresAtivos)
+		if err != nil {
+			log.Println("Erro ao verificar administradores ativos:", err)
+			http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+			return
+		}
+		if administradoresAtivos <= 1 {
+			http.Error(w, "Não é possível remover o último administrador ativo", http.StatusConflict)
+			return
+		}
+	}
+
+	var usuario models.UsuarioGerenciamento
+	err = tx.QueryRow(r.Context(), `
+		UPDATE usuarios
+		SET administrador = $1
+		WHERE id = $2 AND ativo = TRUE
+		RETURNING id, nome, login, administrador
+	`, novoStatus, id).Scan(
+		&usuario.ID,
+		&usuario.Nome,
+		&usuario.Login,
+		&usuario.Administrador,
+	)
+	if err != nil {
+		log.Println("Erro ao atualizar permissão de administrador:", err)
+		http.Error(w, "Não foi possível atualizar a permissão", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		log.Println("Erro ao confirmar alteração de permissão:", err)
+		http.Error(w, "Não foi possível concluir a alteração", http.StatusInternalServerError)
+		return
+	}
+
+	acao := "REMOVER_ADMINISTRADOR"
+	if novoStatus {
+		acao = "CONCEDER_ADMINISTRADOR"
+	}
+	h.registrarAuditoria(r, acao, "usuario", id)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(usuario)
+}
+
 func (h *GerenciamentoHandler) AtualizarUsuario(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -1771,6 +1921,14 @@ func (h *GerenciamentoHandler) DesativarUsuario(w http.ResponseWriter, r *http.R
 		return
 	}
 	defer tx.Rollback(r.Context())
+
+	// Usa o mesmo bloqueio da alteração de privilégio para evitar corridas
+	// entre desativação e remoção do último administrador.
+	if _, err := tx.Exec(r.Context(), `LOCK TABLE usuarios IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		log.Println("Erro ao bloquear usuários para desativação:", err)
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
 
 	var administrador, ativo bool
 	err = tx.QueryRow(r.Context(),

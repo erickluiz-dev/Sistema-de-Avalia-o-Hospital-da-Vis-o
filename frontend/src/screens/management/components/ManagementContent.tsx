@@ -30,8 +30,10 @@ type ManagementContentProps = {
   >
 
   aplicandoFuncionario: number | null
+  aplicandoPermissaoId: number | null
 
   aplicarTerminal: (funcionario: Funcionario) => Promise<void>
+  alterarPermissaoAdministrador: (id: number, administrador: boolean) => Promise<void>
 
   getTerminaisDoDepartamento: (
     departamentoId: number | '',
@@ -55,7 +57,9 @@ export default function ManagementContent({
   terminaisPendentes,
   setTerminaisPendentes,
   aplicandoFuncionario,
+  aplicandoPermissaoId,
   aplicarTerminal,
+  alterarPermissaoAdministrador,
   getTerminaisDoDepartamento,
   onNovoFuncionario,
   onNovoTerminal,
@@ -104,6 +108,8 @@ export default function ManagementContent({
           usuarios={usuarios}
           onNovoUsuario={onNovoUsuario}
           onExcluir={(id, nome) => onExcluir('usuarios', id, nome)}
+          onAlterarAdministrador={alterarPermissaoAdministrador}
+          aplicandoPermissaoId={aplicandoPermissaoId}
         />
       )}
 

@@ -35,9 +35,11 @@ export function useManagementScreen() {
     setTerminaisPendentes,
 
     aplicandoFuncionario,
+    aplicandoPermissaoId,
 
     carregarDados,
     aplicarTerminal,
+    alterarPermissaoAdministrador,
     excluirRegistro,
     getTerminaisDoDepartamento,
   } = useManagementData()
@@ -105,8 +107,10 @@ export function useManagementScreen() {
     setTerminaisPendentes,
 
     aplicandoFuncionario,
+    aplicandoPermissaoId,
 
     aplicarTerminal,
+    alterarPermissaoAdministrador,
     getTerminaisDoDepartamento,
 
     onNovoFuncionario: abrirModal,

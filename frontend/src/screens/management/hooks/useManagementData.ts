@@ -31,6 +31,9 @@ export function useManagementData() {
   const [aplicandoFuncionario, setAplicandoFuncionario] =
     useState<number | null>(null)
 
+  const [aplicandoPermissaoId, setAplicandoPermissaoId] =
+    useState<number | null>(null)
+
   const carregarDados = useCallback(async () => {
     try {
       setCarregando(true)
@@ -136,6 +139,42 @@ export function useManagementData() {
     }
   }
 
+  const alterarPermissaoAdministrador = async (
+    id: number,
+    administrador: boolean,
+  ) => {
+    try {
+      setAplicandoPermissaoId(id)
+
+      const response = await apiFetch(
+        `/admin/usuarios/${id}/administrador`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ administrador }),
+        },
+      )
+
+      if (!response.ok) {
+        const mensagem = (await response.text()).trim()
+        window.alert(mensagem || 'Não foi possível atualizar a permissão.')
+        return
+      }
+
+      const usuarioAtualizado = await response.json()
+      setUsuarios((atuais) =>
+        atuais.map((usuario) =>
+          usuario.id === id ? usuarioAtualizado : usuario,
+        ),
+      )
+    } catch (error) {
+      console.error('Erro ao alterar permissão de administrador:', error)
+      window.alert('Não foi possível atualizar a permissão. Verifique a conexão.')
+    } finally {
+      setAplicandoPermissaoId(null)
+    }
+  }
+
   const getTerminaisDoDepartamento = (
     departamentoId: number | '',
   ): Terminal[] => {
@@ -225,9 +264,11 @@ export function useManagementData() {
     setTerminaisPendentes,
 
     aplicandoFuncionario,
+    aplicandoPermissaoId,
 
     carregarDados,
     aplicarTerminal,
+    alterarPermissaoAdministrador,
     excluirRegistro,
     getTerminaisDoDepartamento,
   }

@@ -7,12 +7,16 @@ type UsuariosTabProps = {
   usuarios: Usuario[]
   onNovoUsuario: () => void
   onExcluir: (id: number, nome: string) => void
+  onAlterarAdministrador: (id: number, administrador: boolean) => Promise<void>
+  aplicandoPermissaoId: number | null
 }
 
 export default function UsuariosTab({
   usuarios,
   onNovoUsuario,
   onExcluir,
+  onAlterarAdministrador,
+  aplicandoPermissaoId,
 }: UsuariosTabProps) {
   const [busca, setBusca] = useState('')
   const usuariosFiltrados = useMemo(() => {
@@ -91,15 +95,35 @@ export default function UsuariosTab({
                 </td>
 
                 <td className="px-4 py-4 text-center">
-                  {usuarioItem.administrador ? (
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
-                      Sim
+                  <div className="inline-flex min-w-[112px] items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={usuarioItem.administrador}
+                      aria-label={`${usuarioItem.administrador ? 'Remover' : 'Conceder'} permissão de administrador para ${usuarioItem.nome}`}
+                      disabled={aplicandoPermissaoId === usuarioItem.id}
+                      onClick={() => onAlterarAdministrador(
+                        usuarioItem.id,
+                        !usuarioItem.administrador,
+                      )}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00B5CC] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${
+                        usuarioItem.administrador ? 'bg-[#00B5CC]' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                          usuarioItem.administrador ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-xs font-medium ${
+                      usuarioItem.administrador ? 'text-[#00B5CC]' : 'text-gray-400'
+                    }`}>
+                      {aplicandoPermissaoId === usuarioItem.id
+                        ? 'Salvando...'
+                        : usuarioItem.administrador ? 'Ativo' : 'Inativo'}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
-                      Não
-                    </span>
-                  )}
+                  </div>
                 </td>
                 <td className="px-4 py-4 text-center">
                   <button type="button" onClick={() => onExcluir(usuarioItem.id, usuarioItem.nome)}

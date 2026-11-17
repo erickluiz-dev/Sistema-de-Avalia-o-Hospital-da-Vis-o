@@ -5,6 +5,7 @@ import (
 	"backend/handlers"
 	"backend/middleware"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -133,6 +134,10 @@ func configurarRotas(
 
 	mux.Handle("/admin/usuarios", admin(gerenciamentoHandler.Usuarios))
 	mux.Handle("/admin/usuarios/", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/administrador") {
+			gerenciamentoHandler.AtualizarPermissaoAdministrador(w, r)
+			return
+		}
 		switch r.Method {
 		case http.MethodPut:
 			gerenciamentoHandler.AtualizarUsuario(w, r)
