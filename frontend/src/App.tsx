@@ -10,6 +10,7 @@ import ConnectionScreen from './screens/ConnectionScreen'
 import EmployeeValidationScreen from './screens/EmployeeValidationScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import ManagementScreen from './screens/ManagementScreen'
+import PermissionsScreen from './screens/PermissionsScreen'
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
 import PatientReviewScreen from './screens/PatientReviewScreen'
@@ -20,7 +21,11 @@ import type {
   ModoAtendimento,
 } from './types'
 
-type PatientData = { nome: string; telefone: string; email: string }
+type PatientData = {
+  nome: string
+  telefone: string
+  email: string
+}
 
 function getClientId(): string | null {
   const key = 'hv-atendimento-client-id'
@@ -48,10 +53,26 @@ export default function App() {
   const [departamentoId, setDepartamentoId] = useState<number | null>(null)
   const [terminalId, setTerminalId] = useState<number | null>(null)
   const [mostrarDepartamento, setMostrarDepartamento] = useState(false)
-  const [dadosValidacao, setDadosValidacao] = useState<PatientData>({ nome: '', telefone: '', email: '' })
-  const [dadosOriginais, setDadosOriginais] = useState<PatientData>({ nome: '', telefone: '', email: '' })
-  const [correcoesValidacao, setCorrecoesValidacao] = useState<Partial<PatientData>>({})
-  const [statusValidacao, setStatusValidacao] = useState<'waiting' | 'checking' | 'corrections' | 'validated' | 'survey'>('waiting')
+
+  const [dadosValidacao, setDadosValidacao] = useState<PatientData>({
+    nome: '',
+    telefone: '',
+    email: '',
+  })
+
+  const [dadosOriginais, setDadosOriginais] = useState<PatientData>({
+    nome: '',
+    telefone: '',
+    email: '',
+  })
+
+  const [correcoesValidacao, setCorrecoesValidacao] =
+    useState<Partial<PatientData>>({})
+
+  const [statusValidacao, setStatusValidacao] = useState<
+    'waiting' | 'checking' | 'corrections' | 'validated' | 'survey'
+  >('waiting')
+
   const [modoAtendimento, setModoAtendimento] =
     useState<ModoAtendimento>('paciente')
 
@@ -79,17 +100,21 @@ export default function App() {
           setScreen('reset-password')
           setVerificandoSessao(false)
         }
+
         return
       }
 
       try {
-        const response = await apiFetch('/me', { method: 'GET' })
+        const response = await apiFetch('/me', {
+          method: 'GET',
+        })
 
         if (response.status === 401) {
           if (ativo) {
             setUsuario(null)
             setScreen('login')
           }
+
           return
         }
 
@@ -128,13 +153,21 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await apiFetch('/logout', { method: 'POST' })
+      await apiFetch('/logout', {
+        method: 'POST',
+      })
     } catch (error) {
       console.error('Erro ao encerrar sessão:', error)
     } finally {
       setUsuario(null)
       setMostrarDepartamento(false)
-      setDadosValidacao({ nome: '', telefone: '', email: '' })
+
+      setDadosValidacao({
+        nome: '',
+        telefone: '',
+        email: '',
+      })
+
       setStatusValidacao('waiting')
       setDepartamentoId(null)
       setTerminalId(null)
@@ -159,9 +192,10 @@ export default function App() {
    * da presença. A saída só é enviada quando o efeito é encerrado, isto é, quando
    * o fluxo da avaliação é abandonado ou os IDs/modo realmente mudam.
    */
+
   useEffect(() => {
     if (
-      !['patient-review', 'survey'].includes(screen)||
+      !['patient-review', 'survey'].includes(screen) ||
       modoAtendimento !== 'paciente' ||
       departamentoId === null ||
       terminalId === null
@@ -186,6 +220,7 @@ export default function App() {
       if (!ativo || emExecucao) return
 
       emExecucao = true
+
       try {
         const response = await apiFetch('/atendimento/presenca', {
           method: 'POST',
@@ -193,7 +228,9 @@ export default function App() {
         })
 
         if (!response.ok) {
-          throw new Error(`Erro HTTP ${response.status} ao renovar presença`)
+          throw new Error(
+            `Erro HTTP ${response.status} ao renovar presença`
+          )
         }
       } catch (error) {
         if (ativo) {
@@ -209,16 +246,19 @@ export default function App() {
     const interval = window.setInterval(() => {
       void heartbeat()
     }, 5000)
+
     return () => {
       ativo = false
       window.clearInterval(interval)
-      // Não chamar /atendimento/sair no cleanup: ele também executa quando
-      // a tela muda internamente de patient-review para survey/connection.
+
+      // Não chamar /atendimento/sair no cleanup:
+      // ele também executa quando a tela muda internamente.
       // Se o dispositivo fechar a página, a presença expira pelo TTL do backend.
     }
   }, [screen, modoAtendimento, departamentoId, terminalId])
 
   // Mantém a presença do computador enquanto a tela de validação está aberta.
+
   useEffect(() => {
     if (
       !['employee-validation', 'patient-review'].includes(screen) ||
@@ -231,47 +271,81 @@ export default function App() {
 
     const clientId = getClientId()
     if (!clientId) return
-    const payload = JSON.stringify({ department_id: departamentoId, terminal_id: terminalId, client_id: clientId, role: 'funcionario' })
+
+    const payload = JSON.stringify({
+      department_id: departamentoId,
+      terminal_id: terminalId,
+      client_id: clientId,
+      role: 'funcionario',
+    })
+
     let ativo = true
     let emExecucao = false
 
     const heartbeat = async () => {
       if (!ativo || emExecucao) return
+
       emExecucao = true
+
       try {
-        const response = await apiFetch('/atendimento/presenca', { method: 'POST', body: payload })
-        if (!response.ok) throw new Error(`Erro HTTP ${response.status} ao renovar presença do funcionário`)
+        const response = await apiFetch('/atendimento/presenca', {
+          method: 'POST',
+          body: payload,
+        })
+
+        if (!response.ok) {
+          throw new Error(
+            `Erro HTTP ${response.status} ao renovar presença do funcionário`
+          )
+        }
       } catch (error) {
-        if (ativo) console.error('Erro ao renovar presença do funcionário:', error)
+        if (ativo) {
+          console.error(
+            'Erro ao renovar presença do funcionário:',
+            error
+          )
+        }
       } finally {
         emExecucao = false
       }
     }
 
     void heartbeat()
-    const interval = window.setInterval(() => void heartbeat(), 5000)
-    return () => { ativo = false; window.clearInterval(interval) }
+
+    const interval = window.setInterval(() => {
+      void heartbeat()
+    }, 5000)
+
+    return () => {
+      ativo = false
+      window.clearInterval(interval)
+    }
   }, [screen, modoAtendimento, departamentoId, terminalId])
 
+  // O tablet consulta o backend enquanto aguarda.
+  // A conferência só aparece depois que o funcionário envia os dados iniciais.
 
-  // O tablet consulta o backend enquanto aguarda. A conferência só aparece
-  // depois que o funcionário envia os dados iniciais.
   useEffect(() => {
     if (
       screen !== 'connection' ||
       modoAtendimento !== 'paciente' ||
       departamentoId === null ||
       terminalId === null
-    ) return
+    ) {
+      return
+    }
 
     const clientId = getClientId()
     if (!clientId) return
+
     let ativo = true
     let emExecucao = false
 
     const consultarDadosIniciais = async () => {
       if (!ativo || emExecucao) return
+
       emExecucao = true
+
       try {
         const query = new URLSearchParams({
           department_id: String(departamentoId),
@@ -279,17 +353,24 @@ export default function App() {
           client_id: clientId,
           role: 'paciente',
         })
-        const response = await apiFetch(`/atendimento/dados?${query.toString()}`, { method: 'GET' })
+
+        const response = await apiFetch(
+          `/atendimento/dados?${query.toString()}`,
+          { method: 'GET' }
+        )
+
         if (!response.ok) return
+
         const state = await response.json() as {
           data_submitted?: boolean
           review_submitted?: boolean
           authorized?: boolean
           data?: PatientData
         }
+
         // Só abre a conferência enquanto o paciente ainda não a enviou.
-        // Após SubmitReview, data_submitted continua true no backend; sem esta
-        // condição o tablet reabria a tela de conferência indefinidamente.
+        // Após SubmitReview, data_submitted continua true no backend.
+
         if (
           ativo &&
           state.data_submitted &&
@@ -302,38 +383,53 @@ export default function App() {
           setScreen('patient-review')
         }
       } catch (error) {
-        if (ativo) console.warn('Não foi possível consultar os dados para conferência:', error)
+        if (ativo) {
+          console.warn(
+            'Não foi possível consultar os dados para conferência:',
+            error
+          )
+        }
       } finally {
         emExecucao = false
       }
     }
 
     void consultarDadosIniciais()
-    const interval = window.setInterval(() => void consultarDadosIniciais(), 2000)
+
+    const interval = window.setInterval(() => {
+      void consultarDadosIniciais()
+    }, 2000)
+
     return () => {
       ativo = false
       window.clearInterval(interval)
     }
   }, [screen, modoAtendimento, departamentoId, terminalId])
 
-  // O computador consulta o resultado enviado pelo tablet. Só habilita a
-  // liberação depois que o backend confirma review_submitted.
+  // O computador consulta o resultado enviado pelo tablet.
+  // Só habilita a liberação depois que o backend confirma review_submitted.
+
   useEffect(() => {
     if (
       screen !== 'employee-validation' ||
       modoAtendimento !== 'funcionario' ||
       departamentoId === null ||
       terminalId === null
-    ) return
+    ) {
+      return
+    }
 
     const clientId = getClientId()
     if (!clientId) return
+
     let ativo = true
     let emExecucao = false
 
     const consultarRevisao = async () => {
       if (!ativo || emExecucao) return
+
       emExecucao = true
+
       try {
         const query = new URLSearchParams({
           department_id: String(departamentoId),
@@ -341,8 +437,14 @@ export default function App() {
           client_id: clientId,
           role: 'funcionario',
         })
-        const response = await apiFetch(`/atendimento/revisao?${query.toString()}`, { method: 'GET' })
+
+        const response = await apiFetch(
+          `/atendimento/revisao?${query.toString()}`,
+          { method: 'GET' }
+        )
+
         if (!response.ok) return
+
         const state = await response.json() as {
           data_submitted?: boolean
           review_submitted?: boolean
@@ -350,42 +452,74 @@ export default function App() {
           data?: PatientData
           cycle?: number
         }
+
         if (ativo && typeof state.cycle === 'number') {
           if (cicloAtendimentoRef.current === null) {
             cicloAtendimentoRef.current = state.cycle
           } else if (state.cycle !== cicloAtendimentoRef.current) {
             cicloAtendimentoRef.current = state.cycle
-            const dadosVazios = { nome: '', telefone: '', email: '' }
+
+            const dadosVazios = {
+              nome: '',
+              telefone: '',
+              email: '',
+            }
+
             setDadosValidacao(dadosVazios)
             setDadosOriginais(dadosVazios)
             setCorrecoesValidacao({})
             setStatusValidacao('waiting')
           }
         }
+
         if (ativo && state.review_submitted && state.data) {
           const corrigidos = state.data
+
           setDadosValidacao(corrigidos)
+
           setCorrecoesValidacao({
-            ...(corrigidos.nome !== dadosOriginais.nome ? { nome: corrigidos.nome } : {}),
-            ...(corrigidos.telefone !== dadosOriginais.telefone ? { telefone: corrigidos.telefone } : {}),
-            ...(corrigidos.email !== dadosOriginais.email ? { email: corrigidos.email } : {}),
+            ...(corrigidos.nome !== dadosOriginais.nome
+              ? { nome: corrigidos.nome }
+              : {}),
+            ...(corrigidos.telefone !== dadosOriginais.telefone
+              ? { telefone: corrigidos.telefone }
+              : {}),
+            ...(corrigidos.email !== dadosOriginais.email
+              ? { email: corrigidos.email }
+              : {}),
           })
+
           setStatusValidacao('validated')
         }
       } catch (error) {
-        if (ativo) console.warn('Não foi possível consultar a conferência do paciente:', error)
+        if (ativo) {
+          console.warn(
+            'Não foi possível consultar a conferência do paciente:',
+            error
+          )
+        }
       } finally {
         emExecucao = false
       }
     }
 
     void consultarRevisao()
-    const interval = window.setInterval(() => void consultarRevisao(), 5000)
+
+    const interval = window.setInterval(() => {
+      void consultarRevisao()
+    }, 5000)
+
     return () => {
       ativo = false
       window.clearInterval(interval)
     }
-  }, [screen, modoAtendimento, departamentoId, terminalId, dadosOriginais])
+  }, [
+    screen,
+    modoAtendimento,
+    departamentoId,
+    terminalId,
+    dadosOriginais,
+  ])
 
   // ─── Tela de carregamento ──────────────────────────────────────────────────
 
@@ -394,6 +528,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-gray-200 border-t-[#00B5CC] rounded-full animate-spin" />
+
           <span className="text-sm text-gray-500">
             Verificando sessão...
           </span>
@@ -407,6 +542,7 @@ export default function App() {
   return (
     <>
       {/* LOGIN */}
+
       {screen === 'login' && (
         <Login
           onLogin={(usuarioAutenticado) => {
@@ -420,6 +556,7 @@ export default function App() {
       )}
 
       {/* RECUPERAÇÃO DE SENHA */}
+
       {screen === 'forgot-password' && (
         <ForgotPasswordScreen
           onBack={() => {
@@ -429,6 +566,7 @@ export default function App() {
       )}
 
       {/* REDEFINIÇÃO DE SENHA */}
+
       {screen === 'reset-password' && (
         <ResetPasswordScreen
           token={resetToken}
@@ -441,6 +579,7 @@ export default function App() {
       )}
 
       {/* HOME */}
+
       {screen === 'home' && (
         <>
           <HomeScreen
@@ -495,6 +634,7 @@ export default function App() {
       )}
 
       {/* CONEXÃO ENTRE COMPUTADOR E TABLET */}
+
       {screen === 'connection' &&
         departamentoId !== null &&
         terminalId !== null && (
@@ -513,6 +653,7 @@ export default function App() {
         )}
 
       {/* VALIDAÇÃO DOS DADOS DO FUNCIONÁRIO */}
+
       {screen === 'employee-validation' &&
         modoAtendimento === 'funcionario' &&
         departamentoId !== null &&
@@ -527,6 +668,7 @@ export default function App() {
             onContinueToReview={async (dados) => {
               const clientId = getClientId()
               if (!clientId) return
+
               const response = await apiFetch('/atendimento/dados', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -537,10 +679,14 @@ export default function App() {
                   ...dados,
                 }),
               })
+
               if (!response.ok) {
-                alert('Não foi possível enviar os dados ao tablet. Verifique a conexão e tente novamente.')
+                alert(
+                  'Não foi possível enviar os dados ao tablet. Verifique a conexão e tente novamente.'
+                )
                 return
               }
+
               setDadosOriginais(dados)
               setDadosValidacao(dados)
               setCorrecoesValidacao({})
@@ -556,6 +702,7 @@ export default function App() {
             onReleaseSurvey={async () => {
               const clientId = getClientId()
               if (!clientId) return
+
               const response = await apiFetch('/atendimento/autorizar', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -565,59 +712,75 @@ export default function App() {
                   role: 'funcionario',
                 }),
               })
+
               if (!response.ok) {
-                alert('Não foi possível liberar a avaliação. Confirme se o paciente enviou a conferência.')
+                alert(
+                  'Não foi possível liberar a avaliação. Confirme se o paciente enviou a conferência.'
+                )
                 return
               }
+
               setStatusValidacao('survey')
             }}
             onBack={async () => {
-            const clientId = getClientId()
+              const clientId = getClientId()
 
-            // Encerra a conexão do funcionário no departamento/terminal atual.
-            if (clientId && departamentoId !== null && terminalId !== null) {
-              try {
-                await apiFetch('/atendimento/sair', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    department_id: departamentoId,
-                    terminal_id: terminalId,
-                    client_id: clientId,
-                    role: 'funcionario',
-                  }),
-                })
-              } catch (error) {
-                console.error('Erro ao encerrar conexão do funcionário:', error)
+              // Encerra a conexão do funcionário no departamento/terminal atual.
+
+              if (
+                clientId &&
+                departamentoId !== null &&
+                terminalId !== null
+              ) {
+                try {
+                  await apiFetch('/atendimento/sair', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      department_id: departamentoId,
+                      terminal_id: terminalId,
+                      client_id: clientId,
+                      role: 'funcionario',
+                    }),
+                  })
+                } catch (error) {
+                  console.error(
+                    'Erro ao encerrar conexão do funcionário:',
+                    error
+                  )
+                }
               }
-            }
 
-            // Limpa os dados temporários do atendimento.
-            const dadosVazios = {
-              nome: '',
-              telefone: '',
-              email: '',
-            }
+              // Limpa os dados temporários do atendimento.
 
-            setDadosValidacao(dadosVazios)
-            setDadosOriginais(dadosVazios)
-            setCorrecoesValidacao({})
-            setStatusValidacao('waiting')
-            cicloAtendimentoRef.current = null
+              const dadosVazios = {
+                nome: '',
+                telefone: '',
+                email: '',
+              }
 
-            // Limpa a seleção do departamento e terminal.
-            setDepartamentoId(null)
-            setTerminalId(null)
-            setDepartamentoNome('')
-            setTerminalNome('')
-            setMostrarDepartamento(false)
+              setDadosValidacao(dadosVazios)
+              setDadosOriginais(dadosVazios)
+              setCorrecoesValidacao({})
+              setStatusValidacao('waiting')
+              cicloAtendimentoRef.current = null
 
-            // Retorna ao menu principal.
-            setScreen('home')
-          }}
+              // Limpa a seleção do departamento e terminal.
+
+              setDepartamentoId(null)
+              setTerminalId(null)
+              setDepartamentoNome('')
+              setTerminalNome('')
+              setMostrarDepartamento(false)
+
+              // Retorna ao menu principal.
+
+              setScreen('home')
+            }}
           />
         )}
 
       {/* CONFERÊNCIA DOS DADOS — exibida no tablet após envio pelo funcionário */}
+
       {screen === 'patient-review' &&
         modoAtendimento === 'paciente' &&
         departamentoId !== null &&
@@ -630,6 +793,7 @@ export default function App() {
             onSubmitCorrections={async (dados) => {
               const clientId = getClientId()
               if (!clientId) return
+
               const response = await apiFetch('/atendimento/revisao', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -640,10 +804,14 @@ export default function App() {
                   ...dados,
                 }),
               })
+
               if (!response.ok) {
-                alert('Não foi possível enviar a conferência. Verifique a conexão e tente novamente.')
+                alert(
+                  'Não foi possível enviar a conferência. Verifique a conexão e tente novamente.'
+                )
                 return
               }
+
               setDadosValidacao(dados)
               setScreen('connection')
             }}
@@ -652,35 +820,38 @@ export default function App() {
         )}
 
       {/* PESQUISA */}
+
       {screen === 'survey' &&
         departamentoId !== null &&
         terminalId !== null && (
           <SurveyScreen
-          departamentoId={departamentoId}
-          terminalId={terminalId}
-          clientId={getClientId() ?? ''}
-          telefone={dadosValidacao.telefone}
-          onBack={() => {
-            const dadosVazios = {
-              nome: '',
-              telefone: '',
-              email: '',
-            }
+            departamentoId={departamentoId}
+            terminalId={terminalId}
+            clientId={getClientId() ?? ''}
+            telefone={dadosValidacao.telefone}
+            onBack={() => {
+              const dadosVazios = {
+                nome: '',
+                telefone: '',
+                email: '',
+              }
 
-            setDadosValidacao(dadosVazios)
-            setDadosOriginais(dadosVazios)
-            setCorrecoesValidacao({})
-            setStatusValidacao('waiting')
+              setDadosValidacao(dadosVazios)
+              setDadosOriginais(dadosVazios)
+              setCorrecoesValidacao({})
+              setStatusValidacao('waiting')
 
-            cicloAtendimentoRef.current = null
+              cicloAtendimentoRef.current = null
 
-            // Preserva a conexão e retorna à tela original.
-            setScreen('connection')
-          }}
-        />
+              // Preserva a conexão e retorna à tela original.
+
+              setScreen('connection')
+            }}
+          />
         )}
 
       {/* DASHBOARD */}
+
       {screen === 'dashboard' && (
         <DashboardScreen
           onBack={() => {
@@ -697,7 +868,23 @@ export default function App() {
         />
       )}
 
+      {/* PERMISSÕES — MÓDULO INDEPENDENTE */}
+
+      {screen === 'permissions' && (
+        <PermissionsScreen
+          onLogout={handleLogout}
+          usuario={usuario}
+          onNavigate={setScreen}
+          onStartSurvey={(modo: ModoAtendimento) => {
+            setModoAtendimento(modo)
+            setMostrarDepartamento(true)
+            setScreen('home')
+          }}
+        />
+      )}
+
       {/* GERENCIAMENTO */}
+
       {screen === 'management' && (
         <ManagementScreen
           onBack={() => {

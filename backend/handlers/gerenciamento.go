@@ -135,9 +135,13 @@ func (h *GerenciamentoHandler) CriarUsuario(
 			nome,
 			login,
 			senha_hash,
-			administrador
+			administrador,
+			funcao_id
 		)
-		VALUES ($1, $2, $3, $4)
+		VALUES (
+			$1, $2, $3, $4,
+			(SELECT id FROM funcoes WHERE codigo = CASE WHEN $4 THEN 'administrador' ELSE 'funcionario' END)
+		)
 		RETURNING id, nome, login, administrador
 		`,
 		req.Nome,

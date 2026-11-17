@@ -132,6 +132,14 @@ func configurarRotas(
 	mux.Handle("/admin/avaliacoes", admin(avaliacaoHandler.Listar))
 	mux.Handle("/avaliacoes/estatisticas", admin(avaliacaoHandler.Estatisticas))
 
+	permissoesHandler := &handlers.PermissoesHandler{
+		DB:               gerenciamentoHandler.DB,
+		AuditoriaService: gerenciamentoHandler.AuditoriaService,
+	}
+	mux.Handle("/admin/permissoes/catalogo", admin(http.HandlerFunc(permissoesHandler.Catalogo)))
+	mux.Handle("/admin/permissoes/usuarios", admin(http.HandlerFunc(permissoesHandler.Usuarios)))
+	mux.Handle("/admin/permissoes/usuarios/", admin(http.HandlerFunc(permissoesHandler.Usuario)))
+
 	mux.Handle("/admin/usuarios", admin(gerenciamentoHandler.Usuarios))
 	mux.Handle("/admin/usuarios/", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/administrador") {

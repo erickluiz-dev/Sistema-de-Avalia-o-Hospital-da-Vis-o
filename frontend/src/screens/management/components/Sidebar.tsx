@@ -401,7 +401,11 @@ export default function SidebarLayout({
                   label="Permissões"
                   icon={<UserCog size={20} />}
                   expanded={expanded}
-                  onClick={() => {}}
+                  active={activeScreen === 'permissions'}
+                  onClick={() => {
+                    setAtendimentoOpen(false)
+                    onNavigate('permissions')
+                  }}
                 />
 
                 {/* ACADEMY */}

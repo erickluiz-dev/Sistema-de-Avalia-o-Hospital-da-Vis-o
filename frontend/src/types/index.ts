@@ -10,6 +10,7 @@ export type Screen =
   | 'survey'
   | 'dashboard'
   | 'management'
+  | 'permissions'
 
 export type ModoAtendimento = 'funcionario' | 'paciente'
 
